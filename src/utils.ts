@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { RuleListener, RuleWithMeta, RuleWithMetaAndName } from '@typescript-eslint/utils/eslint-utils'
 import type { RuleContext } from '@typescript-eslint/utils/ts-eslint'
 import type { Rule } from 'eslint'
@@ -9,9 +8,9 @@ const blobUrl = 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/'
 
 export type RuleModule<
   T extends readonly unknown[],
-> = {
+> = Rule.RuleModule & {
   defaultOptions: T
-} & Rule.RuleModule
+}
 
 /**
  * Creates reusable function to create rules with default options and docs URLs.
@@ -61,12 +60,12 @@ function createRule<
     create: ((
       context: Readonly<RuleContext<TMessageIds, TOptions>>,
     ): RuleListener => {
-      const optionsWithDefault = context.options.map((options, index) => ({
-        // @ts-expect-error it's fine
-        ...defaultOptions[index],
-        // @ts-expect-error it's fine
-        ...options,
-      })) as unknown as TOptions
+      const optionsWithDefault = context.options.map((options, index) => {
+        return {
+          ...defaultOptions?.[index] || {},
+          ...options || {},
+        }
+      }) as unknown as TOptions
       return create(context, optionsWithDefault)
     }) as any,
     defaultOptions,
@@ -82,7 +81,7 @@ export const createEslintRule = RuleCreator(
 
 const warned = new Set<string>()
 
-export function warnOnce(message: string) {
+export function warnOnce(message: string): void {
   if (warned.has(message))
     return
   warned.add(message)
