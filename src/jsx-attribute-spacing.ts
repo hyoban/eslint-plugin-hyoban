@@ -32,7 +32,7 @@ const rule = createEslintRule<Options, MessageIds>({
       if (
         expressionTypesNoCheck.has(expression.type)
         || (expression.type === 'ArrowFunctionExpression'
-        && expression.body.type !== 'BlockStatement')
+          && expression.body.type !== 'BlockStatement')
       ) {
         return
       }
@@ -63,7 +63,7 @@ const rule = createEslintRule<Options, MessageIds>({
     }
 
     return {
-      'JSXExpressionContainer:exit'(node) {
+      'JSXExpressionContainer:exit': function (node) {
         check(node, true)
       },
       JSXExpressionContainer(node) {

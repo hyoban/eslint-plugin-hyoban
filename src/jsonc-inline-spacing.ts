@@ -16,7 +16,8 @@ function getCorrectedSource(value: JsonAST.JSONExpression | null): string | unde
   if (value.type === 'JSONObjectExpression') {
     return `{ ${value.properties
       .filter(property => property.key.type !== 'JSONIdentifier')
-      .map(property => `${(property.key as JsonAST.JSONStringLiteral | JsonAST.JSONNumberLiteral).raw}: ${getCorrectedSource(property.value)}`).join(', ')} }`
+      .map(property => `${(property.key as JsonAST.JSONStringLiteral | JsonAST.JSONNumberLiteral).raw}: ${getCorrectedSource(property.value)}`)
+      .join(', ')} }`
   }
 }
 

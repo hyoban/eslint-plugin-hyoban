@@ -2,7 +2,7 @@
   "name": "eslint-plugin-hyoban",
   "type": "module",
   "version": "0.6.1",
-  "packageManager": "pnpm@9.3.0",
+  "packageManager": "pnpm@10.28.2",
   "description": "Hyoban extended ESLint rules.",
   "author": {
     "name": "hyoban",
@@ -56,16 +56,16 @@
     "eslint": "*"
   },
   "devDependencies": {
-    "@types/eslint": "^8.56.10",
-    "@types/node": "^20.14.2",
-    "@typescript-eslint/parser": "^7.13.0",
-    "@typescript-eslint/utils": "^7.13.0",
-    "bunchee": "^5.1.6",
-    "eslint": "^9.4.0",
-    "eslint-config-hyoban": "3.0.0-beta.16",
-    "eslint-vitest-rule-tester": "^0.2.2",
-    "jsonc-eslint-parser": "^2.4.0",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.0"
+    "@types/eslint": "^9.6.1",
+    "@types/node": "^25.1.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "@typescript-eslint/utils": "^8.54.0",
+    "bunchee": "^6.9.4",
+    "eslint": "^9.39.2",
+    "eslint-config-hyoban": "6.0.0-beta.3",
+    "eslint-vitest-rule-tester": "^3.0.1",
+    "jsonc-eslint-parser": "^2.4.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

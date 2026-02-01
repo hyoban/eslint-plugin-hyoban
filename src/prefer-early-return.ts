@@ -49,9 +49,9 @@ const rule = createEslintRule<Options, MessageIds>({
         if (
           isNodeNeedEarlyReturn(node.alternate)
           || (node.alternate.type === 'BlockStatement'
-          && node.alternate.body.some(statement =>
-            isNodeNeedEarlyReturn(statement),
-          ))
+            && node.alternate.body.some(statement =>
+              isNodeNeedEarlyReturn(statement),
+            ))
         ) {
           context.report({
             node: node.alternate,
@@ -66,10 +66,10 @@ const rule = createEslintRule<Options, MessageIds>({
               ifText
                 = ifText.startsWith('{') && ifText.endsWith('}')
                   ? ifText
-                    .replace(/^\{/, '')
-                    .replace(/\}$/, '')
-                    .replaceAll('\n  ', '\n')
-                    .slice(1, -1)
+                      .replace(/^\{/, '')
+                      .replace(/\}$/, '')
+                      .replaceAll('\n  ', '\n')
+                      .slice(1, -1)
                   : `${getIndentation(node)}${ifText}`
 
               const elseText = context.sourceCode.getText(node.alternate!)

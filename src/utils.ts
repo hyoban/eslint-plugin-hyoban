@@ -7,11 +7,11 @@ const hasDocs = new Set<string>([])
 
 const blobUrl = 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/'
 
-export interface RuleModule<
+export type RuleModule<
   T extends readonly unknown[],
-> extends Rule.RuleModule {
+> = {
   defaultOptions: T
-}
+} & Rule.RuleModule
 
 /**
  * Creates reusable function to create rules with default options and docs URLs.
