@@ -114,6 +114,7 @@ function normalizeSegment(value: string): string {
     .replace(/\s+/g, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+    .toLowerCase()
 }
 
 function getIconClass(
