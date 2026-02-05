@@ -236,6 +236,9 @@ function getClassNameValueText(
 
   if (classNameAttribute.value.type === 'JSXExpressionContainer') {
     const expression = classNameAttribute.value.expression
+    if (expression.type === 'JSXEmptyExpression')
+      return `{${JSON.stringify(classNames)}}`
+
     if (
       expression.type === 'CallExpression'
       && expression.callee.type === 'Identifier'
@@ -248,7 +251,12 @@ function getClassNameValueText(
       return `{cn(${argumentsText})}`
     }
 
-    return null
+    const expressionText = sourceCode.getText(expression)
+    const escapedClassNames = classNames
+      .replaceAll('\\', '\\\\')
+      .replaceAll('`', '\\`')
+      .replaceAll('${', '\\${')
+    return `{\`${escapedClassNames} \${${expressionText}}\`}`
   }
 
   return null

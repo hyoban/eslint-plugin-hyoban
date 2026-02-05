@@ -272,7 +272,10 @@ run({
       errors(errors) {
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
-        expect(errors[0]?.suggestions ?? []).toHaveLength(0)
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text)
+          // eslint-disable-next-line no-template-curly-in-string
+          .toBe('<span className={`i-acme-search ${dynamic}`} size={size} />')
       },
       output: null,
     },
