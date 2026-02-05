@@ -2,7 +2,9 @@ import type { RuleListener, RuleWithMeta, RuleWithMetaAndName } from '@typescrip
 import type { RuleContext } from '@typescript-eslint/utils/ts-eslint'
 import type { Rule } from 'eslint'
 
-const hasDocs = new Set<string>([])
+const hasDocs = new Set<string>([
+  'prefer-tailwind-icons',
+])
 
 const blobUrl = 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/'
 
@@ -53,7 +55,7 @@ function createRule<
   TMessageIds extends string,
 >({
   create,
-  defaultOptions,
+  defaultOptions = [] as unknown as TOptions,
   meta,
 }: Readonly<RuleWithMeta<TOptions, TMessageIds>>): RuleModule<TOptions> {
   return {
