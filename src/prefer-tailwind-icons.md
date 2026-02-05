@@ -18,9 +18,13 @@ When a JSX icon component comes from configured icon libraries, this rule report
 type Options = [{
   libraries?: Array<{
     pattern: string
-    prefix: string
+    importNamePattern?: string
+    prefix?: string
     suffix?: string
     extractSubPath?: boolean
+    sourceReplace?: string
+    importNameReplace?: string
+    classNameTemplate?: string
   }>
   propMappings?: Record<string, string>
 }]
@@ -30,10 +34,19 @@ type Options = [{
 
 Defines which import sources are treated as icon libraries and how to build icon class names.
 
-- `pattern`: import source match rule. Supports exact match and sub-path prefix match.
-- `prefix`: class prefix, e.g. `i-ri-`.
+- `pattern`: import source match rule.
+  - Plain string: exact match + sub-path prefix match.
+  - Regex string literal (`/source/flags`): regular expression match.
+- `importNamePattern`: optional import name match rule (plain string or regex string literal).
+- `prefix`: class prefix, e.g. `i-ri-` (legacy/simple mode).
 - `suffix`: optional class suffix.
-- `extractSubPath`: when `true`, appends sub-path segments (joined by `-`) after `prefix`.
+- `extractSubPath`: when `true`, appends sub-path segments (joined by `-`) after `prefix` (simple mode).
+- `sourceReplace`: optional replacement string applied to the import source using `pattern`.
+- `importNameReplace`: optional replacement string applied to import name using `importNamePattern` (or `/^(.*)$/` by default).
+- `classNameTemplate`: optional template for final className. Supported placeholders:
+  - `{source}`: source text after `sourceReplace`
+  - `{name}`: import name after `importNameReplace`
+  - `{nameKebab}`: kebab-case of `{name}`
 
 ### `propMappings` (optional)
 
@@ -92,6 +105,18 @@ export default [
 ]
 ```
 
+Regex replace example (match source + import name):
+
+```js
+const config = {
+  pattern: '/^@acme\\/icons\\/(solid|outline)$/',
+  importNamePattern: '/^(.*)Icon$/',
+  sourceReplace: 'i-acme-$1-',
+  importNameReplace: '$1',
+  classNameTemplate: '{source}{nameKebab}',
+}
+```
+
 ## Example
 
 Input:
@@ -107,5 +132,5 @@ Suggested output:
 ```tsx
 import { SearchIcon } from '@acme/icons'
 
-const App = () => <span className={"i-acme-search-icon size-4 text-red-500"} />
+const App = () => <span className="i-acme-search-icon size-4 text-red-500" />
 ```

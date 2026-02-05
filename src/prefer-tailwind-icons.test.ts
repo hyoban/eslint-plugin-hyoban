@@ -20,6 +20,32 @@ const acmeOptions = [
   },
 ]
 
+const acmeRegexOptions = [
+  {
+    libraries: [
+      {
+        pattern: '/^@acme\\/icons(?:\\/.*)?$/',
+        prefix: 'i-acme-',
+      },
+    ],
+  },
+]
+
+const acmeSourceAndNameRegexOptions = [
+  {
+    libraries: [
+      {
+        pattern: '/^@acme\\/icons\\/(solid|outline)$/',
+        prefix: '',
+        importNamePattern: '/^(.*)Icon$/',
+        sourceReplace: 'i-acme-$1-',
+        importNameReplace: '$1',
+        classNameTemplate: '{source}{nameKebab}',
+      },
+    ],
+  },
+]
+
 run({
   name: 'prefer-tailwind-icons',
   rule: preferTailwindIcons,
@@ -57,6 +83,22 @@ run({
         import { SearchIcon } from '@acme/icons'
       `,
       options: acmeOptions,
+    },
+    {
+      code: dedent`
+        import { SearchIcon } from '@other/icons'
+
+        const App = () => <SearchIcon />
+      `,
+      options: acmeRegexOptions,
+    },
+    {
+      code: dedent`
+        import { Search } from '@acme/icons/outline'
+
+        const App = () => <Search />
+      `,
+      options: acmeSourceAndNameRegexOptions,
     },
   ],
   invalid: [
@@ -114,6 +156,36 @@ run({
       errors(errors) {
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIconImport')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
+        import { SearchIcon } from '@acme/icons/outline'
+
+        const App = () => <SearchIcon />
+      `,
+      options: acmeRegexOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search-icon"} />')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
+        import { ArrowLeftIcon as ArrowLeft } from '@acme/icons/solid'
+
+        const App = () => <ArrowLeft className="text-slate-500" />
+      `,
+      options: acmeSourceAndNameRegexOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-solid-arrow-left text-slate-500"} />')
       },
       output: null,
     },

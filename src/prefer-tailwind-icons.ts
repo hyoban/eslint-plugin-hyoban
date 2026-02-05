@@ -5,22 +5,17 @@ import { createEslintRule } from './utils'
 type PatternMatch = RegExpMatchArray | null
 
 type IconConfig = {
-  pattern: string | RegExp
-  prefix: string | ((match: PatternMatch) => string)
-  suffix?: string | ((match: PatternMatch) => string)
-  extractSubPath?: boolean
-  iconFilter?: (name: string) => boolean
-  stripPrefix?: string
-  stripSuffix?: string
-  transformName?: (name: string, source: string) => string
-}
-
-type UserLibraryConfig = {
   pattern: string
-  prefix: string
+  importNamePattern?: string
+  prefix?: string
   suffix?: string
   extractSubPath?: boolean
+  sourceReplace?: string
+  importNameReplace?: string
+  classNameTemplate?: string
 }
+
+type UserLibraryConfig = IconConfig
 
 type UserOptions = {
   libraries?: UserLibraryConfig[]
@@ -68,45 +63,111 @@ function pixelToClass(pixels: number, classPrefix: string): string {
 }
 
 /**
+ * Parse regex literal string like `/pattern/gi`
+ */
+function parseRegexPattern(pattern: string): RegExp | null {
+  if (!pattern.startsWith('/'))
+    return null
+
+  let closingSlashIndex = -1
+
+  for (let i = pattern.length - 1; i > 0; i--) {
+    if (pattern[i] !== '/')
+      continue
+
+    let backslashCount = 0
+    for (let j = i - 1; j >= 0 && pattern[j] === '\\'; j--)
+      backslashCount++
+
+    if (backslashCount % 2 === 0) {
+      closingSlashIndex = i
+      break
+    }
+  }
+
+  if (closingSlashIndex <= 1)
+    return null
+
+  const source = pattern.slice(1, closingSlashIndex)
+  const flags = pattern.slice(closingSlashIndex + 1)
+
+  if (!/^[a-z]*$/.test(flags))
+    return null
+
+  try {
+    return new RegExp(source, flags)
+  }
+  catch {
+    return null
+  }
+}
+
+/**
  * Match source against config pattern
  */
 function matchPattern(source: string, config: IconConfig): MatchResult {
-  const { pattern } = config
-  if (pattern instanceof RegExp) {
-    const match = source.match(pattern)
+  return matchValueByPattern(source, config.pattern, true)
+}
+
+function matchValueByPattern(value: string, pattern: string, allowSubPath: boolean): MatchResult {
+  const regex = parseRegexPattern(pattern)
+
+  if (regex) {
+    const match = value.match(regex)
     if (!match)
       return { matched: false, match: null }
     return { matched: true, match }
   }
 
-  if (source === pattern || source.startsWith(`${pattern}/`))
+  if (allowSubPath && (value === pattern || value.startsWith(`${pattern}/`)))
+    return { matched: true, match: null }
+
+  if (!allowSubPath && value === pattern)
     return { matched: true, match: null }
 
   return { matched: false, match: null }
+}
+
+function matchImportName(importName: string, config: IconConfig): boolean {
+  if (!config.importNamePattern)
+    return true
+
+  return matchValueByPattern(importName, config.importNamePattern, false).matched
+}
+
+function replaceByPattern(value: string, pattern: string, replacement: string): string {
+  const regex = parseRegexPattern(pattern)
+  if (regex)
+    return value.replace(regex, replacement)
+  return value.replace(pattern, replacement)
 }
 
 /**
  * Get icon class from config
  */
 function getIconClass(iconName: string, config: IconConfig, source: string, match: PatternMatch): string {
-  let name = iconName
-  if (config.stripPrefix && name.startsWith(config.stripPrefix))
-    name = name.slice(config.stripPrefix.length)
-  if (config.stripSuffix && name.endsWith(config.stripSuffix))
-    name = name.slice(0, -config.stripSuffix.length)
+  const replacedSource = config.sourceReplace
+    ? replaceByPattern(source, config.pattern, config.sourceReplace)
+    : source
 
-  const transformed = config.transformName
-    ? config.transformName(name, source)
-    : camelToKebab(name)
+  const replacedName = config.importNameReplace
+    ? replaceByPattern(iconName, config.importNamePattern ?? '/^(.*)$/', config.importNameReplace)
+    : iconName
 
-  const prefix = typeof config.prefix === 'function' ? config.prefix(match) : config.prefix
-  const suffix = typeof config.suffix === 'function'
-    ? config.suffix(match)
-    : (config.suffix ?? '')
+  if (config.classNameTemplate) {
+    return config.classNameTemplate
+      .replaceAll('{source}', replacedSource)
+      .replaceAll('{name}', replacedName)
+      .replaceAll('{nameKebab}', camelToKebab(replacedName))
+  }
+
+  const transformed = camelToKebab(replacedName)
+  const prefix = config.prefix ?? ''
+  const suffix = config.suffix ?? ''
 
   let subPrefix = ''
   if (config.extractSubPath) {
-    const basePath = match?.[0] ?? (typeof config.pattern === 'string' ? config.pattern : '')
+    const basePath = match?.[0] ?? (parseRegexPattern(config.pattern) ? '' : config.pattern)
     if (basePath && source.startsWith(`${basePath}/`)) {
       const subPath = source.slice(basePath.length + 1)
       if (subPath)
@@ -170,11 +231,15 @@ const rule = createEslintRule<Options, MessageIds>({
               type: 'object',
               properties: {
                 pattern: { type: 'string' },
+                importNamePattern: { type: 'string' },
                 prefix: { type: 'string' },
                 suffix: { type: 'string' },
                 extractSubPath: { type: 'boolean' },
+                sourceReplace: { type: 'string' },
+                importNameReplace: { type: 'string' },
+                classNameTemplate: { type: 'string' },
               },
-              required: ['pattern', 'prefix'],
+              required: ['pattern'],
               additionalProperties: false,
             },
           },
@@ -227,16 +292,15 @@ const rule = createEslintRule<Options, MessageIds>({
         if (!matchedConfig)
           return
 
-        const iconFilter = matchedConfig.iconFilter ?? (() => true)
-
         for (const specifier of node.specifiers) {
           if (!isNamedImportSpecifier(specifier))
             continue
 
           const importedName = specifier.imported.name
-          const localName = specifier.local.name
-          if (!iconFilter(importedName))
+          if (!matchImportName(importedName, matchedConfig))
             continue
+
+          const localName = specifier.local.name
 
           iconImports.set(localName, {
             node: specifier,
