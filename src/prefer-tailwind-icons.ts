@@ -4,21 +4,18 @@ import { createEslintRule, warnOnce } from './utils'
 
 type LibraryConfig = {
   source: string
-  sourceReplace?: string
   name?: string
-  nameReplace?: string
 }
 
 type UserOptions = {
   libraries?: LibraryConfig[]
+  prefix?: string
   propMappings?: Record<string, string>
 }
 
 type ResolvedLibraryConfig = {
   sourceRegex: RegExp
-  sourceReplace: string
   nameRegex: RegExp
-  nameReplace: string
 }
 
 type IconImportInfo = {
@@ -110,12 +107,7 @@ function hasRegexMatch(value: string, regex: RegExp): boolean {
   return regex.test(value)
 }
 
-function replaceByRegex(value: string, regex: RegExp, replacement: string): string {
-  regex.lastIndex = 0
-  return value.replace(regex, replacement)
-}
-
-function normalizeSourcePart(value: string): string {
+function normalizeSegment(value: string): string {
   return value
     .replaceAll('/', '-')
     .replaceAll('_', '-')
@@ -128,16 +120,33 @@ function getIconClass(
   importName: string,
   source: string,
   config: ResolvedLibraryConfig,
+  globalPrefix: string,
 ): string {
-  const replacedSource = replaceByRegex(source, config.sourceRegex, config.sourceReplace).trim()
-  const replacedName = replaceByRegex(importName, config.nameRegex, config.nameReplace).trim()
-  const iconName = camelToKebab(replacedName || importName) || camelToKebab(importName)
+  config.sourceRegex.lastIndex = 0
+  config.nameRegex.lastIndex = 0
+  const sourceMatch = source.match(config.sourceRegex)
+  const nameMatch = importName.match(config.nameRegex)
 
-  const sourcePart = normalizeSourcePart(replacedSource)
-  if (!sourcePart)
-    return iconName
+  const getGroup = (...keys: string[]) => {
+    for (const key of keys) {
+      const fromName = nameMatch?.groups?.[key]
+      if (fromName)
+        return fromName
+      const fromSource = sourceMatch?.groups?.[key]
+      if (fromSource)
+        return fromSource
+    }
+    return ''
+  }
 
-  return `${sourcePart}-${iconName}`.replace(/-+/g, '-')
+  const iconSetPart = normalizeSegment(getGroup('set', 'iconSet'))
+  const iconNamePart = camelToKebab(getGroup('name', 'icon') || importName) || camelToKebab(importName)
+  const variantPart = normalizeSegment(getGroup('variant'))
+
+  return [globalPrefix, iconSetPart, iconNamePart, variantPart]
+    .filter(Boolean)
+    .join('-')
+    .replace(/-+/g, '-')
 }
 
 function matchLibrarySource(source: string, config: ResolvedLibraryConfig): boolean {
@@ -159,9 +168,7 @@ function normalizeLibraryConfig(config: LibraryConfig): ResolvedLibraryConfig | 
 
   return {
     sourceRegex,
-    sourceReplace: config.sourceReplace ?? '',
     nameRegex,
-    nameReplace: config.nameReplace ?? '$&',
   }
 }
 
@@ -278,13 +285,15 @@ const rule = createEslintRule<Options, MessageIds>({
               type: 'object',
               properties: {
                 source: { type: 'string' },
-                sourceReplace: { type: 'string' },
                 name: { type: 'string' },
-                nameReplace: { type: 'string' },
               },
               required: ['source'],
               additionalProperties: false,
             },
+          },
+          prefix: {
+            type: 'string',
+            description: 'Global class prefix added before generated icon classes',
           },
           propMappings: {
             type: 'object',
@@ -308,6 +317,7 @@ const rule = createEslintRule<Options, MessageIds>({
     if (resolvedConfigs.length === 0)
       return {}
 
+    const globalPrefix = options.prefix ?? ''
     const propMappings: Record<string, string> = options.propMappings ?? {}
     const iconImports = new Map<string, IconImportInfo>()
     const sourceCode = context.sourceCode
@@ -366,7 +376,7 @@ const rule = createEslintRule<Options, MessageIds>({
 
         iconInfo.used = true
 
-        const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config)
+        const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config, globalPrefix)
         const classNameAttribute = node.attributes.find(attribute =>
           isJsxAttributeNamed(attribute, 'className'),
         )
@@ -448,7 +458,7 @@ const rule = createEslintRule<Options, MessageIds>({
           if (!hasRuntimeReference(sourceCode, iconInfo.node))
             continue
 
-          const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config)
+          const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config, globalPrefix)
 
           context.report({
             node: iconInfo.node,

@@ -18,10 +18,9 @@ When a JSX icon component comes from configured icon libraries, this rule report
 type Options = [{
   libraries?: Array<{
     source: string
-    sourceReplace?: string
     name?: string
-    nameReplace?: string
   }>
+  prefix?: string
   propMappings?: Record<string, string>
 }]
 ```
@@ -30,21 +29,24 @@ type Options = [{
 
 Defines which import sources are treated as icon libraries and how to build icon class names.
 
+- `prefix`: global class prefix added before every generated icon class (e.g. `i-`).
 - All matcher strings are treated as **regex** (not exact string).
   - You can write regex source directly, e.g. `^@acme/icons$`
   - Or use regex literal string, e.g. `/^@acme\\/icons$/i`
 - `source`: regex for import source matching (required).
-- `sourceReplace`: replacement string for matched source (supports `$1`, `$<name>`). Default: `''`.
-- `name`: regex for imported name matching/filtering. Default: `.*`.
-- `nameReplace`: replacement string for imported name (supports `$1`, `$<name>`). Default: `$&`.
+- `name`: regex for imported name matching/filtering (default: `.*`).
+- Named groups are used to extract segments:
+  - `set` / `iconSet`: icon set segment.
+  - `name` / `icon`: icon name segment.
+  - `variant`: optional variant segment.
 
 Final class is built as:
 
 ```txt
-normalize(importSource.replace(sourceRegex, sourceReplace)) + '-' + kebab(importName.replace(nameRegex, nameReplace))
+prefix + set + '-' + kebab(name) + optional('-' + variant)
 ```
 
-When `sourceReplace` resolves to empty string, class is only the kebab-case name part.
+When `set` is missing, class falls back to `prefix + kebab(importedName)`.
 
 ### `propMappings` (optional)
 
@@ -77,24 +79,19 @@ export default [
     },
     rules: {
       'hyoban/prefer-tailwind-icons': ['warn', {
+        prefix: 'i-',
         libraries: [
           {
-            source: '^@remixicon/react$',
-            sourceReplace: 'i-ri',
-            name: '^(.*?)(?:Icon)?$',
-            nameReplace: '$1',
+            source: '^@(?<set>ri)/react$',
+            name: '^(?<name>.*?)(?:Icon)?$',
           },
           {
-            source: '^@heroicons/react$',
-            sourceReplace: 'i-heroicons',
-            name: '^(.*?)(?:Icon)?$',
-            nameReplace: '$1',
+            source: '^@(?<set>heroicons)/react/(?<variant>\\d+/(?:solid|outline))$',
+            name: '^(?<name>.*)Icon$',
           },
           {
-            source: '^@/app/components/base/icons/src/public(?:/(.*))?$',
-            sourceReplace: 'i-custom-public-$1',
-            name: '^(.*?)(?:Icon)?$',
-            nameReplace: '$1',
+            source: '^@/app/components/base/icons/src/(?<set>public|vender)(?:/(?<variant>.*))?$',
+            name: '^(?<name>.*?)(?:Icon)?$',
           },
         ],
         propMappings: {
@@ -108,15 +105,15 @@ export default [
 ]
 ```
 
-Regex replace example:
+Named groups example:
 
 ```js
 const config = {
-  source: '^@acme/icons/(?<subpath>solid|outline)$',
-  sourceReplace: 'i-acme-$<subpath>',
-  name: '^(.*)Icon$',
-  nameReplace: '$1',
+  prefix: 'i-',
+  source: '^@(?<set>heroicons)/react/(?<variant>\\d+/(?:solid|outline))$',
+  name: '^(?<name>.*)Icon$',
 }
+// ChevronDownIcon -> i-heroicons-chevron-down-20-solid
 ```
 
 ## Example

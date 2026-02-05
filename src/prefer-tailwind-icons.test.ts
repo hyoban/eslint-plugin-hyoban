@@ -6,12 +6,11 @@ import preferTailwindIcons from './prefer-tailwind-icons'
 
 const acmeOptions = [
   {
+    prefix: 'i-',
     libraries: [
       {
-        source: '^@acme/icons$',
-        sourceReplace: 'i-acme',
-        name: '^(.*?)(?:Icon)?$',
-        nameReplace: '$1',
+        source: '^@(?<set>acme)/icons$',
+        name: '^(?<name>.*?)(?:Icon)?$',
       },
     ],
     propMappings: {
@@ -24,12 +23,23 @@ const acmeOptions = [
 
 const acmeRegexOptions = [
   {
+    prefix: 'i-',
     libraries: [
       {
-        source: '^@acme/icons(?:/.*)?$',
-        sourceReplace: 'i-acme',
-        name: '^(.*?)(?:Icon)?$',
-        nameReplace: '$1',
+        source: '^@(?<set>acme)/icons(?:/.*)?$',
+        name: '^(?<name>.*?)(?:Icon)?$',
+      },
+    ],
+  },
+]
+
+const acmeWithGlobalPrefixOptions = [
+  {
+    prefix: 'i-',
+    libraries: [
+      {
+        source: '^@(?<set>acme)/icons$',
+        name: '^(?<name>.*?)(?:Icon)?$',
       },
     ],
   },
@@ -37,12 +47,23 @@ const acmeRegexOptions = [
 
 const acmeIncludeSubPathOptions = [
   {
+    prefix: 'i-',
     libraries: [
       {
-        source: '^@acme/icons/(?<subpath>solid|outline)$',
-        sourceReplace: 'i-acme-$<subpath>',
-        name: '^(.*)Icon$',
-        nameReplace: '$1',
+        source: '^@(?<set>acme)/icons/(?<variant>solid|outline)$',
+        name: '^(?<name>.*)Icon$',
+      },
+    ],
+  },
+]
+
+const heroiconsTailSourceOptions = [
+  {
+    prefix: 'i-',
+    libraries: [
+      {
+        source: '^@(?<set>heroicons)/react/(?<variant>\\d+/(?:solid|outline))$',
+        name: '^(?<name>.*)Icon$',
       },
     ],
   },
@@ -178,6 +199,36 @@ run({
     },
     {
       code: dedent`
+        import { SearchIcon } from '@acme/icons'
+
+        const App = () => <SearchIcon />
+      `,
+      options: acmeWithGlobalPrefixOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search"} />')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
+        import { ChevronDownIcon } from '@heroicons/react/20/solid'
+
+        const App = () => <ChevronDownIcon />
+      `,
+      options: heroiconsTailSourceOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-heroicons-chevron-down-20-solid"} />')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
         import { ArrowLeftIcon as ArrowLeft } from '@acme/icons/solid'
 
         const App = () => <ArrowLeft className="text-slate-500" />
@@ -187,7 +238,7 @@ run({
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
-        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-solid-arrow-left text-slate-500"} />')
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-arrow-left-solid text-slate-500"} />')
       },
       output: null,
     },
