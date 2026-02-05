@@ -8,8 +8,10 @@ const acmeOptions = [
   {
     libraries: [
       {
-        pattern: '@acme/icons',
-        prefix: 'i-acme-',
+        source: '^@acme/icons$',
+        sourceReplace: 'i-acme',
+        name: '^(.*?)(?:Icon)?$',
+        nameReplace: '$1',
       },
     ],
     propMappings: {
@@ -24,23 +26,23 @@ const acmeRegexOptions = [
   {
     libraries: [
       {
-        pattern: '/^@acme\\/icons(?:\\/.*)?$/',
-        prefix: 'i-acme-',
+        source: '^@acme/icons(?:/.*)?$',
+        sourceReplace: 'i-acme',
+        name: '^(.*?)(?:Icon)?$',
+        nameReplace: '$1',
       },
     ],
   },
 ]
 
-const acmeSourceAndNameRegexOptions = [
+const acmeIncludeSubPathOptions = [
   {
     libraries: [
       {
-        pattern: '/^@acme\\/icons\\/(solid|outline)$/',
-        prefix: '',
-        importNamePattern: '/^(.*)Icon$/',
-        sourceReplace: 'i-acme-$1-',
-        importNameReplace: '$1',
-        classNameTemplate: '{source}{nameKebab}',
+        source: '^@acme/icons/(?<subpath>solid|outline)$',
+        sourceReplace: 'i-acme-$<subpath>',
+        name: '^(.*)Icon$',
+        nameReplace: '$1',
       },
     ],
   },
@@ -98,7 +100,7 @@ run({
 
         const App = () => <Search />
       `,
-      options: acmeSourceAndNameRegexOptions,
+      options: acmeIncludeSubPathOptions,
     },
   ],
   invalid: [
@@ -113,7 +115,7 @@ run({
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
-        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search-icon size-4 text-red-500"} aria-hidden />')
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search size-4 text-red-500"} aria-hidden />')
       },
       output: null,
     },
@@ -128,7 +130,7 @@ run({
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
-        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search-icon w-[18px] h-5"} />')
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search w-[18px] h-5"} />')
       },
       output: null,
     },
@@ -170,7 +172,7 @@ run({
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
-        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search-icon"} />')
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search"} />')
       },
       output: null,
     },
@@ -180,12 +182,30 @@ run({
 
         const App = () => <ArrowLeft className="text-slate-500" />
       `,
-      options: acmeSourceAndNameRegexOptions,
+      options: acmeIncludeSubPathOptions,
       errors(errors) {
         expect(errors).toHaveLength(1)
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
         expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-solid-arrow-left text-slate-500"} />')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
+        import { SearchIcon } from '@acme/icons'
+
+        const App = ({ dynamic, size }: { dynamic?: string, size: number }) => (
+          <SearchIcon className={dynamic} size={size} />
+        )
+      `,
+      options: acmeOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text)
+          .toBe('<span className={["i-acme-search", dynamic].filter(Boolean).join(\' \')} size={size} />')
       },
       output: null,
     },

@@ -1,76 +1,61 @@
-import type { TSESTree } from '@typescript-eslint/utils'
+import type { TSESLint, TSESTree } from '@typescript-eslint/utils'
 
-import { createEslintRule } from './utils'
+import { createEslintRule, warnOnce } from './utils'
 
-type PatternMatch = RegExpMatchArray | null
-
-type IconConfig = {
-  pattern: string
-  importNamePattern?: string
-  prefix?: string
-  suffix?: string
-  extractSubPath?: boolean
+type LibraryConfig = {
+  source: string
   sourceReplace?: string
-  importNameReplace?: string
-  classNameTemplate?: string
+  name?: string
+  nameReplace?: string
 }
 
-type UserLibraryConfig = IconConfig
-
 type UserOptions = {
-  libraries?: UserLibraryConfig[]
+  libraries?: LibraryConfig[]
   propMappings?: Record<string, string>
+}
+
+type ResolvedLibraryConfig = {
+  sourceRegex: RegExp
+  sourceReplace: string
+  nameRegex: RegExp
+  nameReplace: string
 }
 
 type IconImportInfo = {
   node: TSESTree.ImportSpecifier
   importedName: string
   localName: string
-  config: IconConfig
+  config: ResolvedLibraryConfig
   source: string
-  match: PatternMatch
   used: boolean
-}
-
-type MatchResult = {
-  matched: boolean
-  match: PatternMatch
 }
 
 export type MessageIds = 'preferTailwindIcon' | 'preferTailwindIconImport'
 export type Options = [UserOptions?]
 
-/**
- * Convert PascalCase/camelCase to kebab-case
- */
-function camelToKebab(name: string): string {
-  return name
-    .replace(/([a-z])(\d)/g, '$1-$2')
+function camelToKebab(value: string): string {
+  return value
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
+    .replace(/([a-z])(\d)/gi, '$1-$2')
     .replace(/(\d)([a-z])/gi, '$1-$2')
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/([a-z\d])([A-Z])/g, '$1-$2')
+    .replace(/[_\s]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
     .toLowerCase()
 }
 
-/**
- * Convert pixel value to Tailwind class
- */
 function pixelToClass(pixels: number, classPrefix: string): string {
-  if (pixels % 4 === 0) {
+  if (pixels % 4 === 0)
     return `${classPrefix}-${pixels / 4}`
-  }
-
   return `${classPrefix}-[${pixels}px]`
 }
 
-/**
- * Parse regex literal string like `/pattern/gi`
- */
 function parseRegexPattern(pattern: string): RegExp | null {
   if (!pattern.startsWith('/'))
     return null
 
   let closingSlashIndex = -1
-
   for (let i = pattern.length - 1; i > 0; i--) {
     if (pattern[i] !== '/')
       continue
@@ -90,8 +75,7 @@ function parseRegexPattern(pattern: string): RegExp | null {
 
   const source = pattern.slice(1, closingSlashIndex)
   const flags = pattern.slice(closingSlashIndex + 1)
-
-  if (!/^[a-z]*$/.test(flags))
+  if (!/^[a-z]*$/i.test(flags))
     return null
 
   try {
@@ -102,80 +86,93 @@ function parseRegexPattern(pattern: string): RegExp | null {
   }
 }
 
-/**
- * Match source against config pattern
- */
-function matchPattern(source: string, config: IconConfig): MatchResult {
-  return matchValueByPattern(source, config.pattern, true)
-}
+function createRegex(pattern: string, optionName: string): RegExp | null {
+  if (pattern.startsWith('/') && pattern.lastIndexOf('/') > 0) {
+    const literalRegex = parseRegexPattern(pattern)
+    if (literalRegex)
+      return literalRegex
 
-function matchValueByPattern(value: string, pattern: string, allowSubPath: boolean): MatchResult {
-  const regex = parseRegexPattern(pattern)
-
-  if (regex) {
-    const match = value.match(regex)
-    if (!match)
-      return { matched: false, match: null }
-    return { matched: true, match }
+    warnOnce(`[prefer-tailwind-icons] Invalid regex literal in "${optionName}": ${pattern}`)
+    return null
   }
 
-  if (allowSubPath && (value === pattern || value.startsWith(`${pattern}/`)))
-    return { matched: true, match: null }
-
-  if (!allowSubPath && value === pattern)
-    return { matched: true, match: null }
-
-  return { matched: false, match: null }
-}
-
-function matchImportName(importName: string, config: IconConfig): boolean {
-  if (!config.importNamePattern)
-    return true
-
-  return matchValueByPattern(importName, config.importNamePattern, false).matched
-}
-
-function replaceByPattern(value: string, pattern: string, replacement: string): string {
-  const regex = parseRegexPattern(pattern)
-  if (regex)
-    return value.replace(regex, replacement)
-  return value.replace(pattern, replacement)
-}
-
-/**
- * Get icon class from config
- */
-function getIconClass(iconName: string, config: IconConfig, source: string, match: PatternMatch): string {
-  const replacedSource = config.sourceReplace
-    ? replaceByPattern(source, config.pattern, config.sourceReplace)
-    : source
-
-  const replacedName = config.importNameReplace
-    ? replaceByPattern(iconName, config.importNamePattern ?? '/^(.*)$/', config.importNameReplace)
-    : iconName
-
-  if (config.classNameTemplate) {
-    return config.classNameTemplate
-      .replaceAll('{source}', replacedSource)
-      .replaceAll('{name}', replacedName)
-      .replaceAll('{nameKebab}', camelToKebab(replacedName))
+  try {
+    return new RegExp(pattern)
   }
-
-  const transformed = camelToKebab(replacedName)
-  const prefix = config.prefix ?? ''
-  const suffix = config.suffix ?? ''
-
-  let subPrefix = ''
-  if (config.extractSubPath) {
-    const basePath = match?.[0] ?? (parseRegexPattern(config.pattern) ? '' : config.pattern)
-    if (basePath && source.startsWith(`${basePath}/`)) {
-      const subPath = source.slice(basePath.length + 1)
-      if (subPath)
-        subPrefix = `${subPath.replaceAll('/', '-')}-`
-    }
+  catch {
+    warnOnce(`[prefer-tailwind-icons] Invalid regex in "${optionName}": ${pattern}`)
+    return null
   }
+}
 
-  return `${prefix}${subPrefix}${transformed}${suffix}`
+function hasRegexMatch(value: string, regex: RegExp): boolean {
+  regex.lastIndex = 0
+  return regex.test(value)
+}
+
+function replaceByRegex(value: string, regex: RegExp, replacement: string): string {
+  regex.lastIndex = 0
+  return value.replace(regex, replacement)
+}
+
+function normalizeSourcePart(value: string): string {
+  return value
+    .replaceAll('/', '-')
+    .replaceAll('_', '-')
+    .replace(/\s+/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+function getIconClass(
+  importName: string,
+  source: string,
+  config: ResolvedLibraryConfig,
+): string {
+  const replacedSource = replaceByRegex(source, config.sourceRegex, config.sourceReplace).trim()
+  const replacedName = replaceByRegex(importName, config.nameRegex, config.nameReplace).trim()
+  const iconName = camelToKebab(replacedName || importName) || camelToKebab(importName)
+
+  const sourcePart = normalizeSourcePart(replacedSource)
+  if (!sourcePart)
+    return iconName
+
+  return `${sourcePart}-${iconName}`.replace(/-+/g, '-')
+}
+
+function matchLibrarySource(source: string, config: ResolvedLibraryConfig): boolean {
+  return hasRegexMatch(source, config.sourceRegex)
+}
+
+function matchImportName(importName: string, config: ResolvedLibraryConfig): boolean {
+  return hasRegexMatch(importName, config.nameRegex)
+}
+
+function normalizeLibraryConfig(config: LibraryConfig): ResolvedLibraryConfig | null {
+  const sourceRegex = createRegex(config.source, 'libraries[].source')
+  if (!sourceRegex)
+    return null
+
+  const nameRegex = createRegex(config.name ?? '.*', 'libraries[].name')
+  if (!nameRegex)
+    return null
+
+  return {
+    sourceRegex,
+    sourceReplace: config.sourceReplace ?? '',
+    nameRegex,
+    nameReplace: config.nameReplace ?? '$&',
+  }
+}
+
+function normalizeLibraryConfigs(configs: LibraryConfig[]): ResolvedLibraryConfig[] {
+  const resolved: ResolvedLibraryConfig[] = []
+  for (const config of configs) {
+    const normalized = normalizeLibraryConfig(config)
+    if (normalized)
+      resolved.push(normalized)
+  }
+  return resolved
 }
 
 function isNamedImportSpecifier(
@@ -213,6 +210,56 @@ function getNumericJsxAttributeValue(attribute: TSESTree.JSXAttribute): number |
   return null
 }
 
+function getClassNameValueText(
+  classNames: string,
+  classNameAttribute: TSESTree.JSXAttribute | undefined,
+  sourceCode: Readonly<TSESLint.SourceCode>,
+): string {
+  if (!classNameAttribute?.value)
+    return `{${JSON.stringify(classNames)}}`
+
+  if (
+    classNameAttribute.value.type === 'Literal'
+    && typeof classNameAttribute.value.value === 'string'
+  ) {
+    const merged = `${classNames} ${classNameAttribute.value.value}`.trim()
+    return `{${JSON.stringify(merged)}}`
+  }
+
+  if (classNameAttribute.value.type === 'JSXExpressionContainer') {
+    const expression = sourceCode.getText(classNameAttribute.value.expression)
+    return `{[${JSON.stringify(classNames)}, ${expression}].filter(Boolean).join(' ')}`
+  }
+
+  return `{${JSON.stringify(classNames)}}`
+}
+
+function hasRuntimeReference(
+  sourceCode: Readonly<TSESLint.SourceCode>,
+  specifier: TSESTree.ImportSpecifier & { local: TSESTree.Identifier },
+): boolean {
+  try {
+    const variable = sourceCode.getDeclaredVariables(specifier)[0]
+    if (!variable)
+      return false
+
+    return variable.references.some((reference) => {
+      if (reference.identifier === specifier.local)
+        return false
+
+      const ref = reference as { isTypeReference?: boolean, isValueReference?: boolean }
+      if (typeof ref.isTypeReference === 'boolean')
+        return !ref.isTypeReference
+      if (typeof ref.isValueReference === 'boolean')
+        return ref.isValueReference
+      return true
+    })
+  }
+  catch {
+    return false
+  }
+}
+
 const rule = createEslintRule<Options, MessageIds>({
   name: 'prefer-tailwind-icons',
   meta: {
@@ -230,16 +277,12 @@ const rule = createEslintRule<Options, MessageIds>({
             items: {
               type: 'object',
               properties: {
-                pattern: { type: 'string' },
-                importNamePattern: { type: 'string' },
-                prefix: { type: 'string' },
-                suffix: { type: 'string' },
-                extractSubPath: { type: 'boolean' },
+                source: { type: 'string' },
                 sourceReplace: { type: 'string' },
-                importNameReplace: { type: 'string' },
-                classNameTemplate: { type: 'string' },
+                name: { type: 'string' },
+                nameReplace: { type: 'string' },
               },
-              required: ['pattern'],
+              required: ['source'],
               additionalProperties: false,
             },
           },
@@ -261,31 +304,29 @@ const rule = createEslintRule<Options, MessageIds>({
   },
   defaultOptions: [{}],
   create(context, [options = {}]) {
-    const iconConfigs: IconConfig[] = options.libraries ?? []
-    if (iconConfigs.length === 0)
+    const resolvedConfigs = normalizeLibraryConfigs(options.libraries ?? [])
+    if (resolvedConfigs.length === 0)
       return {}
 
     const propMappings: Record<string, string> = options.propMappings ?? {}
-
     const iconImports = new Map<string, IconImportInfo>()
     const sourceCode = context.sourceCode
 
     return {
       ImportDeclaration(node) {
+        if (node.importKind === 'type')
+          return
         if (typeof node.source.value !== 'string')
           return
 
         const source = node.source.value
-        let matchedConfig: IconConfig | null = null
-        let matchResult: PatternMatch = null
+        let matchedConfig: ResolvedLibraryConfig | null = null
 
-        for (const config of iconConfigs) {
-          const result = matchPattern(source, config)
-          if (!result.matched)
+        for (const config of resolvedConfigs) {
+          if (!matchLibrarySource(source, config))
             continue
 
           matchedConfig = config
-          matchResult = result.match
           break
         }
 
@@ -294,6 +335,8 @@ const rule = createEslintRule<Options, MessageIds>({
 
         for (const specifier of node.specifiers) {
           if (!isNamedImportSpecifier(specifier))
+            continue
+          if (specifier.importKind === 'type')
             continue
 
           const importedName = specifier.imported.name
@@ -308,7 +351,6 @@ const rule = createEslintRule<Options, MessageIds>({
             localName,
             config: matchedConfig,
             source,
-            match: matchResult,
             used: false,
           })
         }
@@ -324,15 +366,14 @@ const rule = createEslintRule<Options, MessageIds>({
 
         iconInfo.used = true
 
-        const iconClass = getIconClass(iconInfo.importedName, iconInfo.config, iconInfo.source, iconInfo.match)
+        const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config)
         const classNameAttribute = node.attributes.find(attribute =>
           isJsxAttributeNamed(attribute, 'className'),
         )
 
         const mappedClasses: string[] = []
-        const mappedPropNames = Object.keys(propMappings)
-
-        for (const propName of mappedPropNames) {
+        const consumedMappedAttributes = new Set<TSESTree.JSXAttribute>()
+        for (const [propName, classPrefix] of Object.entries(propMappings)) {
           const mappedAttribute = node.attributes.find(attribute =>
             isJsxAttributeNamed(attribute, propName),
           )
@@ -343,28 +384,14 @@ const rule = createEslintRule<Options, MessageIds>({
           if (pixelValue === null)
             continue
 
-          mappedClasses.push(pixelToClass(pixelValue, propMappings[propName]!))
+          mappedClasses.push(pixelToClass(pixelValue, classPrefix))
+          consumedMappedAttributes.add(mappedAttribute)
         }
 
         const classesToAdd = [iconClass, ...mappedClasses].filter(Boolean).join(' ')
-        let newClassName = classesToAdd
-        if (classNameAttribute?.value) {
-          if (
-            classNameAttribute.value.type === 'Literal'
-            && typeof classNameAttribute.value.value === 'string'
-          ) {
-            newClassName = `${classesToAdd} ${classNameAttribute.value.value}`
-          }
-          else if (classNameAttribute.value.type === 'JSXExpressionContainer') {
-            const expression = sourceCode.getText(classNameAttribute.value.expression)
-            newClassName = `\`${classesToAdd} \${${expression}}\``
-          }
-        }
 
         if (node.parent.type !== 'JSXElement')
           return
-
-        const excludedAttributes = new Set(['className', ...mappedPropNames])
 
         context.report({
           node,
@@ -383,17 +410,15 @@ const rule = createEslintRule<Options, MessageIds>({
                 source: iconInfo.source,
               },
               fix(fixer) {
-                const classValue = newClassName.startsWith('`')
-                  ? `{${newClassName}}`
-                  : `{${JSON.stringify(newClassName)}}`
+                const classValue = getClassNameValueText(classesToAdd, classNameAttribute, sourceCode)
 
                 const otherAttributes = node.attributes
                   .filter((attribute) => {
+                    if (attribute === classNameAttribute)
+                      return false
                     if (attribute.type !== 'JSXAttribute')
                       return true
-                    if (attribute.name.type !== 'JSXIdentifier')
-                      return true
-                    return !excludedAttributes.has(attribute.name.name)
+                    return !consumedMappedAttributes.has(attribute)
                   })
                   .map(attribute => sourceCode.getText(attribute))
                   .join(' ')
@@ -420,18 +445,10 @@ const rule = createEslintRule<Options, MessageIds>({
           if (iconInfo.used)
             continue
 
-          const iconClass = getIconClass(iconInfo.importedName, iconInfo.config, iconInfo.source, iconInfo.match)
-
-          try {
-            const variables = sourceCode.getDeclaredVariables(iconInfo.node)
-            const variable = variables[0]
-            const hasReferences = variable?.references.some(ref => ref.identifier !== iconInfo.node.local) ?? false
-            if (!hasReferences)
-              continue
-          }
-          catch {
+          if (!hasRuntimeReference(sourceCode, iconInfo.node))
             continue
-          }
+
+          const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config)
 
           context.report({
             node: iconInfo.node,

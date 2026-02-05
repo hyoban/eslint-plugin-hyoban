@@ -17,14 +17,10 @@ When a JSX icon component comes from configured icon libraries, this rule report
 ```ts
 type Options = [{
   libraries?: Array<{
-    pattern: string
-    importNamePattern?: string
-    prefix?: string
-    suffix?: string
-    extractSubPath?: boolean
+    source: string
     sourceReplace?: string
-    importNameReplace?: string
-    classNameTemplate?: string
+    name?: string
+    nameReplace?: string
   }>
   propMappings?: Record<string, string>
 }]
@@ -34,19 +30,21 @@ type Options = [{
 
 Defines which import sources are treated as icon libraries and how to build icon class names.
 
-- `pattern`: import source match rule.
-  - Plain string: exact match + sub-path prefix match.
-  - Regex string literal (`/source/flags`): regular expression match.
-- `importNamePattern`: optional import name match rule (plain string or regex string literal).
-- `prefix`: class prefix, e.g. `i-ri-` (legacy/simple mode).
-- `suffix`: optional class suffix.
-- `extractSubPath`: when `true`, appends sub-path segments (joined by `-`) after `prefix` (simple mode).
-- `sourceReplace`: optional replacement string applied to the import source using `pattern`.
-- `importNameReplace`: optional replacement string applied to import name using `importNamePattern` (or `/^(.*)$/` by default).
-- `classNameTemplate`: optional template for final className. Supported placeholders:
-  - `{source}`: source text after `sourceReplace`
-  - `{name}`: import name after `importNameReplace`
-  - `{nameKebab}`: kebab-case of `{name}`
+- All matcher strings are treated as **regex** (not exact string).
+  - You can write regex source directly, e.g. `^@acme/icons$`
+  - Or use regex literal string, e.g. `/^@acme\\/icons$/i`
+- `source`: regex for import source matching (required).
+- `sourceReplace`: replacement string for matched source (supports `$1`, `$<name>`). Default: `''`.
+- `name`: regex for imported name matching/filtering. Default: `.*`.
+- `nameReplace`: replacement string for imported name (supports `$1`, `$<name>`). Default: `$&`.
+
+Final class is built as:
+
+```txt
+normalize(importSource.replace(sourceRegex, sourceReplace)) + '-' + kebab(importName.replace(nameRegex, nameReplace))
+```
+
+When `sourceReplace` resolves to empty string, class is only the kebab-case name part.
 
 ### `propMappings` (optional)
 
@@ -81,17 +79,22 @@ export default [
       'hyoban/prefer-tailwind-icons': ['warn', {
         libraries: [
           {
-            pattern: '@remixicon/react',
-            prefix: 'i-ri-',
+            source: '^@remixicon/react$',
+            sourceReplace: 'i-ri',
+            name: '^(.*?)(?:Icon)?$',
+            nameReplace: '$1',
           },
           {
-            pattern: '@heroicons/react',
-            prefix: 'i-heroicons-',
+            source: '^@heroicons/react$',
+            sourceReplace: 'i-heroicons',
+            name: '^(.*?)(?:Icon)?$',
+            nameReplace: '$1',
           },
           {
-            pattern: '@/app/components/base/icons/src/public',
-            prefix: 'i-custom-public-',
-            extractSubPath: true,
+            source: '^@/app/components/base/icons/src/public(?:/(.*))?$',
+            sourceReplace: 'i-custom-public-$1',
+            name: '^(.*?)(?:Icon)?$',
+            nameReplace: '$1',
           },
         ],
         propMappings: {
@@ -105,15 +108,14 @@ export default [
 ]
 ```
 
-Regex replace example (match source + import name):
+Regex replace example:
 
 ```js
 const config = {
-  pattern: '/^@acme\\/icons\\/(solid|outline)$/',
-  importNamePattern: '/^(.*)Icon$/',
-  sourceReplace: 'i-acme-$1-',
-  importNameReplace: '$1',
-  classNameTemplate: '{source}{nameKebab}',
+  source: '^@acme/icons/(?<subpath>solid|outline)$',
+  sourceReplace: 'i-acme-$<subpath>',
+  name: '^(.*)Icon$',
+  nameReplace: '$1',
 }
 ```
 
@@ -132,5 +134,5 @@ Suggested output:
 ```tsx
 import { SearchIcon } from '@acme/icons'
 
-const App = () => <span className="i-acme-search-icon size-4 text-red-500" />
+const App = () => <span className="i-acme-search size-4 text-red-500" />
 ```
