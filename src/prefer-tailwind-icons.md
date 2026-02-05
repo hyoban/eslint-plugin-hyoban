@@ -11,6 +11,10 @@ When a JSX icon component comes from configured icon libraries, this rule report
 - This rule only works for libraries you configure in `options.libraries`.
 - If `libraries` is not provided (or is empty), this rule does nothing.
 - It provides **suggestions** (`hasSuggestions: true`), not automatic fixes.
+- Suggestions are generated only when `className` is:
+  - missing,
+  - a string literal, or
+  - a `cn(...)` call expression (generated class is inserted as the first argument).
 
 ## Options
 

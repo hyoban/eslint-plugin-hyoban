@@ -246,8 +246,8 @@ run({
       code: dedent`
         import { SearchIcon } from '@acme/icons'
 
-        const App = ({ dynamic, size }: { dynamic?: string, size: number }) => (
-          <SearchIcon className={dynamic} size={size} />
+        const App = ({ dynamic }: { dynamic?: string }) => (
+          <SearchIcon className={cn(dynamic, 'text-red-500')} />
         )
       `,
       options: acmeOptions,
@@ -256,7 +256,23 @@ run({
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
         expect(errors[0]?.suggestions?.[0]?.fix?.text)
-          .toBe('<span className={["i-acme-search", dynamic].filter(Boolean).join(\' \')} size={size} />')
+          .toBe('<span className={cn("i-acme-search", dynamic, \'text-red-500\')} />')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
+        import { SearchIcon } from '@acme/icons'
+
+        const App = ({ dynamic, size }: { dynamic?: string, size: number }) => (
+          <SearchIcon className={dynamic} size={size} />
+        )
+      `,
+      options: acmeOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions ?? []).toHaveLength(0)
       },
       output: null,
     },

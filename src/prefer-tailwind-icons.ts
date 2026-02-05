@@ -222,7 +222,7 @@ function getClassNameValueText(
   classNames: string,
   classNameAttribute: TSESTree.JSXAttribute | undefined,
   sourceCode: Readonly<TSESLint.SourceCode>,
-): string {
+): string | null {
   if (!classNameAttribute?.value)
     return `{${JSON.stringify(classNames)}}`
 
@@ -235,11 +235,23 @@ function getClassNameValueText(
   }
 
   if (classNameAttribute.value.type === 'JSXExpressionContainer') {
-    const expression = sourceCode.getText(classNameAttribute.value.expression)
-    return `{[${JSON.stringify(classNames)}, ${expression}].filter(Boolean).join(' ')}`
+    const expression = classNameAttribute.value.expression
+    if (
+      expression.type === 'CallExpression'
+      && expression.callee.type === 'Identifier'
+      && expression.callee.name === 'cn'
+    ) {
+      const existingArguments = expression.arguments.map(argument =>
+        sourceCode.getText(argument),
+      )
+      const argumentsText = [JSON.stringify(classNames), ...existingArguments].join(', ')
+      return `{cn(${argumentsText})}`
+    }
+
+    return null
   }
 
-  return `{${JSON.stringify(classNames)}}`
+  return null
 }
 
 function hasRuntimeReference(
@@ -400,6 +412,7 @@ const rule = createEslintRule<Options, MessageIds>({
         }
 
         const classesToAdd = [iconClass, ...mappedClasses].filter(Boolean).join(' ')
+        const classValue = getClassNameValueText(classesToAdd, classNameAttribute, sourceCode)
 
         if (node.parent.type !== 'JSXElement')
           return
@@ -412,42 +425,44 @@ const rule = createEslintRule<Options, MessageIds>({
             componentName: iconInfo.localName,
             source: iconInfo.source,
           },
-          suggest: [
-            {
-              messageId: 'preferTailwindIcon',
-              data: {
-                iconClass,
-                componentName: iconInfo.localName,
-                source: iconInfo.source,
-              },
-              fix(fixer) {
-                const classValue = getClassNameValueText(classesToAdd, classNameAttribute, sourceCode)
+          ...(classValue
+            ? {
+                suggest: [
+                  {
+                    messageId: 'preferTailwindIcon',
+                    data: {
+                      iconClass,
+                      componentName: iconInfo.localName,
+                      source: iconInfo.source,
+                    },
+                    fix(fixer) {
+                      const otherAttributes = node.attributes
+                        .filter((attribute) => {
+                          if (attribute === classNameAttribute)
+                            return false
+                          if (attribute.type !== 'JSXAttribute')
+                            return true
+                          return !consumedMappedAttributes.has(attribute)
+                        })
+                        .map(attribute => sourceCode.getText(attribute))
+                        .join(' ')
 
-                const otherAttributes = node.attributes
-                  .filter((attribute) => {
-                    if (attribute === classNameAttribute)
-                      return false
-                    if (attribute.type !== 'JSXAttribute')
-                      return true
-                    return !consumedMappedAttributes.has(attribute)
-                  })
-                  .map(attribute => sourceCode.getText(attribute))
-                  .join(' ')
+                      const attrsText = otherAttributes
+                        ? `className=${classValue} ${otherAttributes}`
+                        : `className=${classValue}`
 
-                const attrsText = otherAttributes
-                  ? `className=${classValue} ${otherAttributes}`
-                  : `className=${classValue}`
+                      if (node.selfClosing)
+                        return fixer.replaceText(node.parent, `<span ${attrsText} />`)
 
-                if (node.selfClosing)
-                  return fixer.replaceText(node.parent, `<span ${attrsText} />`)
-
-                const fixes = [fixer.replaceText(node, `<span ${attrsText}>`)]
-                if (node.parent.closingElement)
-                  fixes.push(fixer.replaceText(node.parent.closingElement, '</span>'))
-                return fixes
-              },
-            },
-          ],
+                      const fixes = [fixer.replaceText(node, `<span ${attrsText}>`)]
+                      if (node.parent.closingElement)
+                        fixes.push(fixer.replaceText(node.parent.closingElement, '</span>'))
+                      return fixes
+                    },
+                  },
+                ],
+              }
+            : {}),
         })
       },
 
