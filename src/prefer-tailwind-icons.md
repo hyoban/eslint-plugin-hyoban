@@ -21,6 +21,7 @@ type Options = [{
   libraries?: Array<{
     source: string
     name?: string
+    prefix?: string
   }>
   prefix?: string
   propMappings?: Record<string, string>
@@ -32,6 +33,7 @@ type Options = [{
 Defines which import sources are treated as icon libraries and how to build icon class names.
 
 - `prefix`: global class prefix added before every generated icon class (e.g. `i-`).
+- `libraries[].prefix`: per-library class prefix override (falls back to global `prefix`).
 - All matcher strings are treated as **regex** (not exact string).
   - You can write regex source directly, e.g. `^@acme/icons$`
   - Or use regex literal string, e.g. `/^@acme\\/icons$/i`

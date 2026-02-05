@@ -45,6 +45,19 @@ const acmeWithGlobalPrefixOptions = [
   },
 ]
 
+const acmeWithLibraryPrefixOptions = [
+  {
+    prefix: 'i-',
+    libraries: [
+      {
+        source: '^@(?<set>acme)/icons$',
+        name: '^(?<name>.*?)(?:Icon)?$',
+        prefix: 'icon-',
+      },
+    ],
+  },
+]
+
 const acmeIncludeSubPathOptions = [
   {
     prefix: 'i-',
@@ -209,6 +222,21 @@ run({
         expect(errors[0]?.messageId).toBe('preferTailwindIcon')
         expect(errors[0]?.suggestions).toHaveLength(1)
         expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"i-acme-search"} />')
+      },
+      output: null,
+    },
+    {
+      code: dedent`
+        import { SearchIcon } from '@acme/icons'
+
+        const App = () => <SearchIcon />
+      `,
+      options: acmeWithLibraryPrefixOptions,
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('preferTailwindIcon')
+        expect(errors[0]?.suggestions).toHaveLength(1)
+        expect(errors[0]?.suggestions?.[0]?.fix?.text).toBe('<span className={"icon-acme-search"} />')
       },
       output: null,
     },

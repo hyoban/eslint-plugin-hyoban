@@ -5,6 +5,7 @@ import { createEslintRule, warnOnce } from './utils'
 type LibraryConfig = {
   source: string
   name?: string
+  prefix?: string
 }
 
 type UserOptions = {
@@ -16,6 +17,7 @@ type UserOptions = {
 type ResolvedLibraryConfig = {
   sourceRegex: RegExp
   nameRegex: RegExp
+  prefix?: string
 }
 
 type IconImportInfo = {
@@ -123,6 +125,7 @@ function getIconClass(
   config: ResolvedLibraryConfig,
   globalPrefix: string,
 ): string {
+  const prefix = config.prefix ?? globalPrefix
   config.sourceRegex.lastIndex = 0
   config.nameRegex.lastIndex = 0
   const sourceMatch = source.match(config.sourceRegex)
@@ -144,7 +147,7 @@ function getIconClass(
   const iconNamePart = camelToKebab(getGroup('name', 'icon') || importName) || camelToKebab(importName)
   const variantPart = normalizeSegment(getGroup('variant'))
 
-  return [globalPrefix, iconSetPart, iconNamePart, variantPart]
+  return [prefix, iconSetPart, iconNamePart, variantPart]
     .filter(Boolean)
     .join('-')
     .replace(/-+/g, '-')
@@ -170,6 +173,7 @@ function normalizeLibraryConfig(config: LibraryConfig): ResolvedLibraryConfig | 
   return {
     sourceRegex,
     nameRegex,
+    prefix: config.prefix,
   }
 }
 
@@ -307,6 +311,7 @@ const rule = createEslintRule<Options, MessageIds>({
               properties: {
                 source: { type: 'string' },
                 name: { type: 'string' },
+                prefix: { type: 'string' },
               },
               required: ['source'],
               additionalProperties: false,
