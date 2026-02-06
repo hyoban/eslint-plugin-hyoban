@@ -31,8 +31,6 @@ run({
         }
       `,
     },
-  ],
-  invalid: [
     {
       code: dedent`
         {
@@ -40,15 +38,9 @@ run({
           "title": "Hi"
         }
       `,
-      errors(errors) {
-        expect(errors).toHaveLength(1)
-        expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
-          [
-            "duplicateKeyNotAllowed",
-          ]
-        `)
-      },
     },
+  ],
+  invalid: [
     {
       code: dedent`
         {
@@ -58,10 +50,22 @@ run({
       `,
       errors(errors) {
         expect(errors).toHaveLength(2)
-        expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
+        expect(errors.map(error => ({
+          messageId: error.messageId,
+          line: error.line,
+          column: error.column,
+        }))).toMatchInlineSnapshot(`
           [
-            "keyConflictsWithPrefix",
-            "keyIsPrefixOfAnother",
+            {
+              "column": 3,
+              "line": 2,
+              "messageId": "keyIsPrefixOfAnother",
+            },
+            {
+              "column": 3,
+              "line": 3,
+              "messageId": "keyConflictsWithPrefix",
+            },
           ]
         `)
       },
@@ -77,8 +81,8 @@ run({
         expect(errors).toHaveLength(2)
         expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
           [
-            "keyConflictsWithPrefix",
             "keyIsPrefixOfAnother",
+            "keyConflictsWithPrefix",
           ]
         `)
       },
@@ -94,8 +98,8 @@ run({
         expect(errors).toHaveLength(2)
         expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
           [
-            "keyConflictsWithPrefix",
             "keyIsPrefixOfAnother",
+            "keyConflictsWithPrefix",
           ]
         `)
       },
@@ -110,9 +114,17 @@ run({
       `,
       errors(errors) {
         expect(errors).toHaveLength(1)
-        expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
+        expect(errors.map(error => ({
+          messageId: error.messageId,
+          line: error.line,
+          column: error.column,
+        }))).toMatchInlineSnapshot(`
           [
-            "nestedJsonNotAllowed",
+            {
+              "column": 3,
+              "line": 2,
+              "messageId": "nestedJsonNotAllowed",
+            },
           ]
         `)
       },

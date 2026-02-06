@@ -1,13 +1,27 @@
+import type { TSESTree } from '@typescript-eslint/utils'
 import type { AST as JsonAST } from 'jsonc-eslint-parser'
 
 import { createEslintRule } from './utils'
 
 export type MessageIds
   = | 'nestedJsonNotAllowed'
-    | 'duplicateKeyNotAllowed'
     | 'keyConflictsWithPrefix'
     | 'keyIsPrefixOfAnother'
 export type Options = []
+
+type KeyEntry = {
+  key: string
+  keyNode: JsonAST.JSONProperty['key']
+}
+
+type ReportTargetNode = {
+  range: [number, number]
+}
+
+type ReportSourceCode = {
+  ast: TSESTree.Program
+  getNodeByRangeIndex: (index: number) => unknown
+}
 
 function getPropertyKey(property: JsonAST.JSONProperty): string | null {
   if (property.key.type === 'JSONIdentifier')
@@ -23,6 +37,13 @@ function getPropertyKey(property: JsonAST.JSONProperty): string | null {
   return null
 }
 
+function getReportNode(sourceCode: Readonly<ReportSourceCode>, targetNode: ReportTargetNode): TSESTree.Node {
+  const reportNode = sourceCode.getNodeByRangeIndex(targetNode.range[0])
+  if (reportNode)
+    return reportNode as TSESTree.Node
+  return sourceCode.ast
+}
+
 const rule = createEslintRule<Options, MessageIds>({
   name: 'i18n-flat-key',
   meta: {
@@ -32,7 +53,6 @@ const rule = createEslintRule<Options, MessageIds>({
     },
     messages: {
       nestedJsonNotAllowed: 'Invalid JSON structure: nested object is not allowed, use flat keys instead',
-      duplicateKeyNotAllowed: 'Invalid key structure: duplicate key \'{{key}}\' is not allowed',
       keyConflictsWithPrefix: 'Invalid key structure: \'{{key}}\' conflicts with \'{{prefix}}\'',
       keyIsPrefixOfAnother: 'Invalid key structure: \'{{key}}\' is a prefix of another key',
     },
@@ -43,36 +63,30 @@ const rule = createEslintRule<Options, MessageIds>({
     return {
       JSONObjectExpression(node: JsonAST.JSONObjectExpression) {
         if (node.parent.type !== 'JSONExpressionStatement') {
+          const targetNode = node.parent.type === 'JSONProperty'
+            ? node.parent.key
+            : node
           context.report({
-            loc: node.loc,
+            node: getReportNode(context.sourceCode, targetNode),
             messageId: 'nestedJsonNotAllowed',
           })
           return
         }
 
-        const keyedProperties = node.properties
-          .map(property => ({
-            key: getPropertyKey(property),
-            loc: property.loc,
-          }))
-          .filter((property): property is { key: string, loc: JsonAST.SourceLocation } => property.key !== null)
-        const keySetForDuplicate = new Set<string>()
-        for (const property of keyedProperties) {
-          if (keySetForDuplicate.has(property.key)) {
-            context.report({
-              loc: property.loc,
-              messageId: 'duplicateKeyNotAllowed',
-              data: {
-                key: property.key,
-              },
-            })
+        const keyEntries = new Map<string, KeyEntry>()
+        for (const property of node.properties) {
+          const key = getPropertyKey(property)
+          if (key === null)
             continue
-          }
-          keySetForDuplicate.add(property.key)
+          if (keyEntries.has(key))
+            continue
+          keyEntries.set(key, {
+            key,
+            keyNode: property.key,
+          })
         }
 
-        const keys = [...keySetForDuplicate]
-        const keySet = new Set(keys)
+        const keys = [...keyEntries.keys()]
         const keyPrefixes = new Set<string>()
 
         for (const key of keys) {
@@ -82,9 +96,10 @@ const rule = createEslintRule<Options, MessageIds>({
           const parts = key.split('.')
           for (let i = 1; i < parts.length; i++) {
             const prefix = parts.slice(0, i).join('.')
-            if (keySet.has(prefix)) {
+            if (keyEntries.has(prefix)) {
+              const keyNode = keyEntries.get(key)?.keyNode ?? node
               context.report({
-                loc: node.loc,
+                node: getReportNode(context.sourceCode, keyNode),
                 messageId: 'keyConflictsWithPrefix',
                 data: {
                   key,
@@ -100,8 +115,9 @@ const rule = createEslintRule<Options, MessageIds>({
           if (!keyPrefixes.has(key))
             continue
 
+          const keyNode = keyEntries.get(key)?.keyNode ?? node
           context.report({
-            loc: node.loc,
+            node: getReportNode(context.sourceCode, keyNode),
             messageId: 'keyIsPrefixOfAnother',
             data: {
               key,
