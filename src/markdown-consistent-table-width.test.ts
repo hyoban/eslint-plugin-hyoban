@@ -110,5 +110,37 @@ run({
         `)
       },
     },
+    {
+      code: $`
+        | 名前 | ツール |
+        | --- | --- |
+        | antfu | eslint |
+        | hyoban | markdown |
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "| 名前   | ツール   |
+          | ------ | -------- |
+          | antfu  | eslint   |
+          | hyoban | markdown |"
+        `)
+      },
+    },
+    {
+      code: $`
+        | Name | Description |
+        | :---: | --- |
+        | 你好世界 | Hello World |
+        | Hi | 这是一段描述 |
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "|   Name   | Description  |
+          | :------: | ------------ |
+          | 你好世界 | Hello World  |
+          |    Hi    | 这是一段描述 |"
+        `)
+      },
+    },
   ],
 })
