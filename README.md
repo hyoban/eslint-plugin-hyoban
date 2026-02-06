@@ -7,6 +7,18 @@
 
 Hyoban extended ESLint rules.
 
+<!-- eslint-disable hyoban/markdown-consistent-table-width -->
+Pilot|Airport|Hours
+--|:--:|--:
+John Doe|SKG|1338
+Jane Roe|JFK|314
+<!-- eslint-enable hyoban/markdown-consistent-table-width -->
+
+| Pilot    | Airport | Hours |
+| -------- | :-----: | ----: |
+| John Doe |   SKG   |  1338 |
+| Jane Roe |   JFK   |   314 |
+
 <!-- Badges -->
 
 [npm-version-src]: https://img.shields.io/npm/v/eslint-plugin-hyoban?style=flat&colorA=080f12&colorB=1fa669
