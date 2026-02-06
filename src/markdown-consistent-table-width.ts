@@ -163,6 +163,69 @@ function getExpectedDelimiterSegment(
   )
 }
 
+function getExpectedBodyTail(
+  state: TableState,
+  rowIndex: number,
+  startColumnIndex: number,
+): string {
+  if (startColumnIndex >= state.columnCount)
+    return ''
+
+  return Array.from(
+    { length: state.columnCount - startColumnIndex },
+    (_, index) => {
+      const columnIndex = startColumnIndex + index
+      return getExpectedCellSegment(
+        state.rowValues[rowIndex]?.[columnIndex] ?? '',
+        state.widths[columnIndex] ?? 3,
+        state.alignments[columnIndex] ?? null,
+        columnIndex,
+        state.columnCount,
+      )
+    },
+  ).join('')
+}
+
+function getExpectedDelimiterTail(state: TableState, startColumnIndex: number): string {
+  if (startColumnIndex >= state.columnCount)
+    return ''
+
+  return Array.from(
+    { length: state.columnCount - startColumnIndex },
+    (_, index) => {
+      const columnIndex = startColumnIndex + index
+      return getExpectedDelimiterSegment(
+        state.widths[columnIndex] ?? 3,
+        state.alignments[columnIndex] ?? null,
+        columnIndex,
+        state.columnCount,
+      )
+    },
+  ).join('')
+}
+
+function getBodyCellLabel(
+  rowIndex: number,
+  columnIndex: number,
+  existingCellCount: number,
+  columnCount: number,
+  hasTail: boolean,
+): string {
+  if (!hasTail || existingCellCount === columnCount)
+    return `R${rowIndex + 1}C${columnIndex + 1}`
+  return `R${rowIndex + 1}C${columnIndex + 1}-C${columnCount}`
+}
+
+function getMissingBodyCellLabel(rowIndex: number, startColumnIndex: number, columnCount: number): string {
+  return `R${rowIndex + 1}C${startColumnIndex + 1}-C${columnCount}`
+}
+
+function getDelimiterCellLabel(columnIndex: number, columnCount: number, hasTail: boolean): string {
+  if (!hasTail)
+    return `D${columnIndex + 1}`
+  return `D${columnIndex + 1}-D${columnCount}`
+}
+
 function toMessageValue(text: string): string {
   return JSON.stringify(text)
 }
@@ -267,6 +330,27 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
     const { sourceCode } = context
     const tableStack: Array<{ tableNode: Table, state: TableState | null }> = []
 
+    function reportFormatCell(range: Range, cell: string, actual: string, expected: string): void {
+      if (actual === expected)
+        return
+
+      context.report({
+        loc: {
+          start: sourceCode.getLocFromIndex(range[0]),
+          end: sourceCode.getLocFromIndex(range[1]),
+        },
+        messageId: 'formatCell',
+        data: {
+          cell,
+          expected: toMessageValue(expected),
+          actual: toMessageValue(actual),
+        },
+        fix(fixer) {
+          return fixer.replaceTextRange(range, expected)
+        },
+      })
+    }
+
     return {
       table(tableNode) {
         tableStack.push({
@@ -322,19 +406,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
           if (existingCellCount >= state.columnCount)
             continue
 
-          const expectedTail = Array.from(
-            { length: state.columnCount - existingCellCount },
-            (_, index) => {
-              const columnIndex = existingCellCount + index
-              return getExpectedCellSegment(
-                state.rowValues[rowIndex]?.[columnIndex] ?? '',
-                state.widths[columnIndex] ?? 3,
-                state.alignments[columnIndex] ?? null,
-                columnIndex,
-                state.columnCount,
-              )
-            },
-          ).join('')
+          const expectedTail = getExpectedBodyTail(state, rowIndex, existingCellCount)
           if (expectedTail.length === 0)
             continue
 
@@ -344,23 +416,8 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
           }
 
           const [, rowEndOffset] = sourceCode.getRange(rowNode)
-          const missingCellLabel = `R${rowIndex + 1}C1-C${state.columnCount}`
-
-          context.report({
-            loc: {
-              start: sourceCode.getLocFromIndex(rowEndOffset),
-              end: sourceCode.getLocFromIndex(rowEndOffset),
-            },
-            messageId: 'formatCell',
-            data: {
-              cell: missingCellLabel,
-              expected: toMessageValue(expectedTail),
-              actual: toMessageValue(''),
-            },
-            fix(fixer) {
-              return fixer.replaceTextRange([rowEndOffset, rowEndOffset], expectedTail)
-            },
-          })
+          const missingCellLabel = getMissingBodyCellLabel(rowIndex, existingCellCount, state.columnCount)
+          reportFormatCell([rowEndOffset, rowEndOffset], missingCellLabel, '', expectedTail)
         }
 
         for (const cell of state.visitedCells) {
@@ -383,70 +440,32 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
           if (change.actual === change.expected)
             continue
 
-          const cellLabel = rowTail
-            ? (existingCellCount === state.columnCount
-                ? `R${cell.rowIndex + 1}C${cell.columnIndex + 1}`
-                : `R${cell.rowIndex + 1}C${cell.columnIndex + 1}-C${state.columnCount}`)
-            : `R${cell.rowIndex + 1}C${cell.columnIndex + 1}`
-
-          context.report({
-            loc: {
-              start: sourceCode.getLocFromIndex(change.range[0]),
-              end: sourceCode.getLocFromIndex(change.range[1]),
-            },
-            messageId: 'formatCell',
-            data: {
-              cell: cellLabel,
-              expected: toMessageValue(change.expected),
-              actual: toMessageValue(change.actual),
-            },
-            fix(fixer) {
-              return fixer.replaceTextRange(change.range, change.expected)
-            },
-          })
+          const cellLabel = getBodyCellLabel(
+            cell.rowIndex,
+            cell.columnIndex,
+            existingCellCount,
+            state.columnCount,
+            !!rowTail,
+          )
+          reportFormatCell(change.range, cellLabel, change.actual, change.expected)
         }
 
         const delimiterRow = getDelimiterRowSegments(state.tableNode, sourceCode)
         if (!delimiterRow)
           return
 
-        const delimiterTail = delimiterRow.segments.length < state.columnCount
-          ? Array.from(
-              { length: state.columnCount - delimiterRow.segments.length },
-              (_, index) => {
-                const columnIndex = delimiterRow.segments.length + index
-                return getExpectedDelimiterSegment(
-                  state.widths[columnIndex] ?? 3,
-                  state.alignments[columnIndex] ?? null,
-                  columnIndex,
-                  state.columnCount,
-                )
-              },
-            ).join('')
-          : ''
+        const delimiterTail = getExpectedDelimiterTail(state, delimiterRow.segments.length)
 
         if (delimiterRow.segments.length === 0) {
           if (!delimiterTail)
             return
 
-          context.report({
-            loc: {
-              start: sourceCode.getLocFromIndex(delimiterRow.rowEndOffset),
-              end: sourceCode.getLocFromIndex(delimiterRow.rowEndOffset),
-            },
-            messageId: 'formatCell',
-            data: {
-              cell: `D1-D${state.columnCount}`,
-              expected: toMessageValue(delimiterTail),
-              actual: toMessageValue(''),
-            },
-            fix(fixer) {
-              return fixer.replaceTextRange(
-                [delimiterRow.rowEndOffset, delimiterRow.rowEndOffset],
-                delimiterTail,
-              )
-            },
-          })
+          reportFormatCell(
+            [delimiterRow.rowEndOffset, delimiterRow.rowEndOffset],
+            `D1-D${state.columnCount}`,
+            '',
+            delimiterTail,
+          )
           return
         }
 
@@ -470,25 +489,12 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
           if (change.actual === change.expected)
             continue
 
-          const cellLabel = isLastExistingDelimiterCell && delimiterTail
-            ? `D${columnIndex + 1}-D${state.columnCount}`
-            : `D${columnIndex + 1}`
-
-          context.report({
-            loc: {
-              start: sourceCode.getLocFromIndex(change.range[0]),
-              end: sourceCode.getLocFromIndex(change.range[1]),
-            },
-            messageId: 'formatCell',
-            data: {
-              cell: cellLabel,
-              expected: toMessageValue(change.expected),
-              actual: toMessageValue(change.actual),
-            },
-            fix(fixer) {
-              return fixer.replaceTextRange(change.range, change.expected)
-            },
-          })
+          const cellLabel = getDelimiterCellLabel(
+            columnIndex,
+            state.columnCount,
+            isLastExistingDelimiterCell && !!delimiterTail,
+          )
+          reportFormatCell(change.range, cellLabel, change.actual, change.expected)
         }
       },
     }
