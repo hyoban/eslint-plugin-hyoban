@@ -45,8 +45,7 @@ const rule = createEslintRule<Options, MessageIds>({
           || !properties.every(property =>
             property.key.type !== 'JSONIdentifier' && property.key.raw
             && getCorrectedSource(property.value)
-            && property?.loc.start.line === node?.loc.start.line,
-          )
+            && property?.loc.start.line === node?.loc.start.line)
         if (shouldIgnore)
           return
 
@@ -78,8 +77,7 @@ const rule = createEslintRule<Options, MessageIds>({
           || node.loc.start.line !== node.loc.end.line
           || !elements.every(element =>
             element?.type === 'JSONLiteral'
-            && element?.loc.start.line === node?.loc.start.line,
-          )
+            && element?.loc.start.line === node?.loc.start.line)
         if (shouldIgnore)
           return
 

@@ -249,8 +249,7 @@ function getClassNameValueText(
       && expression.callee.name === 'cn'
     ) {
       const existingArguments = expression.arguments.map(argument =>
-        sourceCode.getText(argument),
-      )
+        sourceCode.getText(argument))
       const argumentsText = [JSON.stringify(classNames), ...existingArguments].join(', ')
       return `{cn(${argumentsText})}`
     }
@@ -404,15 +403,13 @@ const rule = createEslintRule<Options, MessageIds>({
 
         const iconClass = getIconClass(iconInfo.importedName, iconInfo.source, iconInfo.config, globalPrefix)
         const classNameAttribute = node.attributes.find(attribute =>
-          isJsxAttributeNamed(attribute, 'className'),
-        )
+          isJsxAttributeNamed(attribute, 'className'))
 
         const mappedClasses: string[] = []
         const consumedMappedAttributes = new Set<TSESTree.JSXAttribute>()
         for (const [propName, classPrefix] of Object.entries(propMappings)) {
           const mappedAttribute = node.attributes.find(attribute =>
-            isJsxAttributeNamed(attribute, propName),
-          )
+            isJsxAttributeNamed(attribute, propName))
           if (!mappedAttribute)
             continue
 

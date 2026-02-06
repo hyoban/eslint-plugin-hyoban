@@ -50,8 +50,7 @@ const rule = createEslintRule<Options, MessageIds>({
           isNodeNeedEarlyReturn(node.alternate)
           || (node.alternate.type === 'BlockStatement'
             && node.alternate.body.some(statement =>
-              isNodeNeedEarlyReturn(statement),
-            ))
+              isNodeNeedEarlyReturn(statement)))
         ) {
           context.report({
             node: node.alternate,

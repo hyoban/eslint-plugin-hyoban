@@ -3,10 +3,5 @@
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
-  },
-  "src/utils.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
   }
 }
