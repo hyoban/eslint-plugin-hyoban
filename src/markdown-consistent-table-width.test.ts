@@ -1,5 +1,5 @@
 import markdown from '@eslint/markdown'
-import { run, unindent as dedent } from 'eslint-vitest-rule-tester'
+import { run, unindent as $ } from 'eslint-vitest-rule-tester'
 import { expect } from 'vitest'
 
 import markdownConsistentTableWidth from './markdown-consistent-table-width'
@@ -20,7 +20,7 @@ run({
     },
   ],
   valid: [
-    dedent`
+    $`
       | A    |  B  |   C |
       | :--- | :-: | --: |
       | 1    | 22  | 333 |
@@ -29,7 +29,7 @@ run({
   ],
   invalid: [
     {
-      code: dedent`
+      code: $`
         | A | B | C |
         | :- | :-: | -: |
         | 1 | 22 | 333 |
@@ -61,7 +61,7 @@ run({
       },
     },
     {
-      code: dedent`
+      code: $`
         > | Name | Tool |
         > | --- | --- |
         > | antfu | eslint |
@@ -90,7 +90,7 @@ run({
       },
     },
     {
-      code: dedent`
+      code: $`
         | A | B | C |
         | --- | --- | --- |
         | 1 | 2 |
@@ -105,6 +105,22 @@ run({
       errors(errors) {
         expect(errors.length).toBeGreaterThan(0)
         expect(errors.every(error => error.messageId === 'formatTable')).toBe(true)
+      },
+    },
+    {
+      code: $`
+        Pilot|Airport|Hours
+        --|:--:|--:
+        John Doe|SKG|1338
+        Jane Roe|JFK|314
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "| Pilot    | Airport | Hours |
+          | -------- | :-----: | ----: |
+          | John Doe |   SKG   |  1338 |
+          | Jane Roe |   JFK   |   314 |"
+        `)
       },
     },
   ],

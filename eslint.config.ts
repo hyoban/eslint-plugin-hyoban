@@ -1,10 +1,16 @@
 // @ts-check
-import { defineConfig } from 'eslint-config-hyoban'
+import { defineConfig, GLOB_TESTS } from 'eslint-config-hyoban'
 
 import hyoban from './src/index'
 
 export default defineConfig(
   {},
+  {
+    files: GLOB_TESTS,
+    rules: {
+      'antfu/indent-unindent': 'error',
+    },
+  },
   {
     plugins: {
       hyoban,
