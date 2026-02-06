@@ -44,17 +44,9 @@ run({
         `)
       },
       errors(errors) {
-        expect(errors).toHaveLength(9)
+        expect(errors).toHaveLength(1)
         expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
           [
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
             "formatTable",
           ]
         `)
@@ -76,14 +68,9 @@ run({
         `)
       },
       errors(errors) {
-        expect(errors).toHaveLength(6)
+        expect(errors).toHaveLength(1)
         expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
           [
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
-            "formatTable",
             "formatTable",
           ]
         `)
@@ -103,7 +90,7 @@ run({
         `)
       },
       errors(errors) {
-        expect(errors.length).toBeGreaterThan(0)
+        expect(errors).toHaveLength(1)
         expect(errors.every(error => error.messageId === 'formatTable')).toBe(true)
       },
     },
