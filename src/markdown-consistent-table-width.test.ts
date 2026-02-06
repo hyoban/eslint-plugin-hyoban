@@ -44,12 +44,8 @@ run({
         `)
       },
       errors(errors) {
-        expect(errors).toHaveLength(1)
-        expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
-          [
-            "formatTable",
-          ]
-        `)
+        expect(errors).toHaveLength(9)
+        expect(errors.every(error => error.messageId === 'formatCell')).toBe(true)
       },
     },
     {
@@ -68,12 +64,8 @@ run({
         `)
       },
       errors(errors) {
-        expect(errors).toHaveLength(1)
-        expect(errors.map(error => error.messageId)).toMatchInlineSnapshot(`
-          [
-            "formatTable",
-          ]
-        `)
+        expect(errors).toHaveLength(6)
+        expect(errors.every(error => error.messageId === 'formatCell')).toBe(true)
       },
     },
     {
@@ -90,8 +82,8 @@ run({
         `)
       },
       errors(errors) {
-        expect(errors).toHaveLength(1)
-        expect(errors.every(error => error.messageId === 'formatTable')).toBe(true)
+        expect(errors).toHaveLength(5)
+        expect(errors.every(error => error.messageId === 'formatCell')).toBe(true)
       },
     },
     {
