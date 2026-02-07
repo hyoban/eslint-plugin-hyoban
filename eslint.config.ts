@@ -4,7 +4,9 @@ import { defineConfig, GLOB_TESTS } from 'eslint-config-hyoban'
 import hyoban from './src/index'
 
 export default defineConfig(
-  {},
+  {
+    hyoban: false,
+  },
   {
     files: GLOB_TESTS,
     rules: {
