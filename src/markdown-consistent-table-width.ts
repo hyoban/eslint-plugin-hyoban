@@ -1,4 +1,5 @@
 import type { MarkdownRuleDefinition, MarkdownSourceCode } from '@eslint/markdown'
+import stringWidth from 'fast-string-width'
 import type { AlignType, Table, TableCell, TableRow } from 'mdast'
 
 type MessageIds = 'formatCell'
@@ -28,40 +29,6 @@ type TableState = {
   visitedCells: VisitedCell[]
 }
 
-/**
- * Check if a Unicode code point is fullwidth (occupies 2 columns in monospace fonts).
- * Covers CJK Unified Ideographs, Hangul, Katakana, Hiragana, fullwidth forms, emoji, etc.
- */
-function isFullwidthCodePoint(code: number): boolean {
-  return code >= 0x1100 && (
-    code <= 0x115F // Hangul Jamo
-    || code === 0x2329
-    || code === 0x232A
-    || (code >= 0x2E80 && code <= 0x303E) // CJK Radicals, Kangxi, CJK Symbols
-    || (code >= 0x3040 && code <= 0x33FF) // Hiragana, Katakana, Bopomofo, Hangul Compat Jamo, CJK Compat
-    || (code >= 0x3400 && code <= 0x4DBF) // CJK Unified Ideographs Extension A
-    || (code >= 0x4E00 && code <= 0xA4CF) // CJK Unified Ideographs, Yi
-    || (code >= 0xAC00 && code <= 0xD7AF) // Hangul Syllables
-    || (code >= 0xF900 && code <= 0xFAFF) // CJK Compatibility Ideographs
-    || (code >= 0xFE10 && code <= 0xFE19) // Vertical forms
-    || (code >= 0xFE30 && code <= 0xFE6F) // CJK Compatibility Forms, Small Form Variants
-    || (code >= 0xFF00 && code <= 0xFF60) // Fullwidth Forms
-    || (code >= 0xFFE0 && code <= 0xFFE6) // Fullwidth Signs
-    || (code >= 0x1F000 && code <= 0x1FAFF) // Mahjong, Domino, Playing Cards, Emoji
-    || (code >= 0x20000 && code <= 0x2FA1F) // CJK Unified Ideographs Extension B-F
-  )
-}
-
-/**
- * Get the display width of a string, accounting for fullwidth characters.
- */
-function getDisplayWidth(str: string): number {
-  let width = 0
-  for (const char of str)
-    width += isFullwidthCodePoint(char.codePointAt(0)!) ? 2 : 1
-  return width
-}
-
 function getCellText(cell: TableCell, sourceCode: MarkdownSourceCode): string {
   if (cell.children.length === 0)
     return ''
@@ -84,7 +51,7 @@ function getDelimiterCell(width: number, alignment: AlignType): string {
 }
 
 function getAlignedCellContent(cellText: string, width: number, alignment: AlignType): string {
-  const paddingLength = Math.max(0, width - getDisplayWidth(cellText))
+  const paddingLength = Math.max(0, width - stringWidth(cellText))
 
   if (alignment === 'right')
     return `${' '.repeat(paddingLength)}${cellText}`
@@ -380,7 +347,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
         state.rowValues[rowIndex]![columnIndex] = cellText
         state.widths[columnIndex] = Math.max(
           state.widths[columnIndex] ?? 3,
-          getDisplayWidth(cellText),
+          stringWidth(cellText),
           3,
         )
 
