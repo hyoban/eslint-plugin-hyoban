@@ -1,5 +1,5 @@
 import { run, unindent as dedent } from 'eslint-vitest-rule-tester'
-import jsoncParser from 'jsonc-eslint-parser'
+import * as jsoncParser from 'jsonc-eslint-parser'
 import { expect } from 'vitest'
 
 import i18nFlatKey from './i18n-flat-key'

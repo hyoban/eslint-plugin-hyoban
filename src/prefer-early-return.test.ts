@@ -12,33 +12,33 @@ run({
   },
   valid: [
     unindent`
-        function foo() {
-          if (!x) {
-            return z;
-          }
-          console.log('hello')
+      function foo() {
+        if (!x) {
+          return z;
         }
-      `,
+        console.log('hello')
+      }
+    `,
     unindent`
-        function foo() {
-          if (!x) {
-            throw new Error('error');
-          }
-          console.log('hello')
+      function foo() {
+        if (!x) {
+          throw new Error('error');
         }
-      `,
+        console.log('hello')
+      }
+    `,
   ],
   invalid: [
     {
       code: unindent`
-          function foo() {
-            if (x) {
-              console.log('hello')
-            } else {
-              return z;
-            }
+        function foo() {
+          if (x) {
+            console.log('hello')
+          } else {
+            return z;
           }
-        `,
+        }
+      `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "function foo() {
@@ -62,14 +62,14 @@ run({
     },
     {
       code: unindent`
-          function foo() {
-            if (x) {
-              console.log('hello')
-            } else {
-              throw new Error('error');
-            }
+        function foo() {
+          if (x) {
+            console.log('hello')
+          } else {
+            throw new Error('error');
           }
-        `,
+        }
+      `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "function foo() {
@@ -91,11 +91,11 @@ run({
     },
     {
       code: unindent`
-          function foo() {
-            if (x) console.log("hello");
-            else throw new Error("error");
-          }
-        `,
+        function foo() {
+          if (x) console.log("hello");
+          else throw new Error("error");
+        }
+      `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "function foo() {
@@ -115,13 +115,13 @@ run({
     },
     {
       code: unindent`
-          function foo() {
-            for (const a of b) {
-              if (x) console.log("hello");
-              else continue
-            }
+        function foo() {
+          for (const a of b) {
+            if (x) console.log("hello");
+            else continue
           }
-        `,
+        }
+      `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "function foo() {
@@ -143,13 +143,13 @@ run({
     },
     {
       code: unindent`
-          function foo() {
-            for (const a of b) {
-              if (x || y) console.log("hello");
-              else continue
-            }
+        function foo() {
+          for (const a of b) {
+            if (x || y) console.log("hello");
+            else continue
           }
-        `,
+        }
+      `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "function foo() {

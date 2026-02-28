@@ -1,5 +1,5 @@
 import { run, unindent as dedent } from 'eslint-vitest-rule-tester'
-import jsoncParser from 'jsonc-eslint-parser'
+import * as jsoncParser from 'jsonc-eslint-parser'
 import { expect } from 'vitest'
 
 import jsoncInlineSpacing from './jsonc-inline-spacing'
