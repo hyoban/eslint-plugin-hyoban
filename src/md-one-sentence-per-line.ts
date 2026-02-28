@@ -21,7 +21,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
     type: 'layout',
     docs: {
       description: 'Wrap markdown paragraphs so each sentence is on its own line',
-      url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/md-one-sentence-per-line.test.ts',
+      url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/md-one-sentence-per-line.md',
     },
     fixable: 'whitespace',
     schema: [],
