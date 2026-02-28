@@ -7,8 +7,8 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
   meta: {
     type: 'layout',
     docs: {
-      description: 'Wrap markdown paragraphs by sentence-ending punctuation',
-      url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/markdown-paragraph-wrapping.test.ts',
+      description: 'Wrap markdown paragraphs so each sentence is on its own line',
+      url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/md-one-sentence-per-line.test.ts',
     },
     fixable: 'whitespace',
     schema: [],

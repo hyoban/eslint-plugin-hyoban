@@ -2,11 +2,11 @@ import markdown from '@eslint/markdown'
 import { run, unindent as $ } from 'eslint-vitest-rule-tester'
 import { expect } from 'vitest'
 
-import markdownParagraphWrapping from './markdown-paragraph-wrapping'
+import mdOneSentencePerLine from './md-one-sentence-per-line'
 
 run({
-  name: 'markdown-paragraph-wrapping',
-  rule: markdownParagraphWrapping,
+  name: 'md-one-sentence-per-line',
+  rule: mdOneSentencePerLine,
   defaultFilenames: {
     js: 'README.md',
   },

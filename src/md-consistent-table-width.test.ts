@@ -2,11 +2,11 @@ import markdown from '@eslint/markdown'
 import { run, unindent as $ } from 'eslint-vitest-rule-tester'
 import { expect } from 'vitest'
 
-import markdownConsistentTableWidth from './markdown-consistent-table-width'
+import mdConsistentTableWidth from './md-consistent-table-width'
 
 run({
-  name: 'markdown-consistent-table-width',
-  rule: markdownConsistentTableWidth,
+  name: 'md-consistent-table-width',
+  rule: mdConsistentTableWidth,
   defaultFilenames: {
     js: 'README.md',
   },

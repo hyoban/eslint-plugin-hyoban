@@ -21,7 +21,7 @@ export default defineConfig(
   {
     files: ['README.md'],
     rules: {
-      'hyoban/markdown-consistent-table-width': 'error',
+      'hyoban/md-consistent-table-width': 'error',
     },
   },
 )

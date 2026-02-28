@@ -282,7 +282,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
     type: 'layout',
     docs: {
       description: 'Format GFM markdown tables to aligned columns',
-      url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/markdown-consistent-table-width.test.ts',
+      url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/md-consistent-table-width.test.ts',
     },
     fixable: 'whitespace',
     schema: [],
