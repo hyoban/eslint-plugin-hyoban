@@ -96,7 +96,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
             fix(fixer) {
               return fixer.replaceTextRange(
                 [range[0] + matchItem.boundaryStart, range[0] + matchItem.boundaryEnd],
-                '\n' + continuationPrefix,
+                `\n${continuationPrefix}`,
               )
             },
           })
