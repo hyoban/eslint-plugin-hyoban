@@ -35,6 +35,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
   create(context) {
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
+    const fullText = sourceCode.getText()
 
     return {
       'paragraph > text': function (node: Text) {
@@ -71,6 +72,20 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
         if (matches.length === 0)
           return
 
+        // Compute the continuation prefix from the line prefix of the text node.
+        // For blockquotes the `> ` marker is preserved; list markers are replaced
+        // with equivalent spaces so the next sentence stays inside the same block.
+        let lineStart = range[0] - 1
+        while (lineStart >= 0 && fullText[lineStart] !== '\n') {
+          lineStart--
+        }
+        lineStart++
+        const linePrefix = fullText.slice(lineStart, range[0])
+        const continuationPrefix = linePrefix.replace(
+          /([-*+]|\d+[.)]) /g,
+          match => ' '.repeat(match.length),
+        )
+
         for (const matchItem of matches) {
           context.report({
             loc: {
@@ -81,7 +96,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
             fix(fixer) {
               return fixer.replaceTextRange(
                 [range[0] + matchItem.boundaryStart, range[0] + matchItem.boundaryEnd],
-                '\n',
+                '\n' + continuationPrefix,
               )
             },
           })

@@ -22,6 +22,10 @@ Input:
 
 ```md
 Hello world. This is a test.
+
+> Quoted. Sentence.
+
+- Item. Sentence.
 ```
 
 Output:
@@ -29,6 +33,12 @@ Output:
 ```md
 Hello world.
 This is a test.
+
+> Quoted.
+> Sentence.
+
+- Item.
+  Sentence.
 ```
 
 ## Read More
