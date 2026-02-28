@@ -26,22 +26,39 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
       'root > paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
-        const matchPattern = /[。.][\t ]+(?=[^\r\n])/
-        const firstMatch = matchPattern.exec(originalText)
-        if (!firstMatch)
-          return
-        const fixedText = originalText.replace(/([。.])[\t ]+(?=[^\r\n])/g, '$1\n')
+        const matchPattern = /[。.][\t ]*(?=[^\r\n])/g
+        const matches: Array<{ index: number, length: number, char: string }> = []
+        let match = matchPattern.exec(originalText)
+        while (match) {
+          const matchValue = match[0] ?? ''
+          if (matchValue.length === 0)
+            break
+          matches.push({
+            index: match.index,
+            length: matchValue.length,
+            char: matchValue[0] ?? '',
+          })
+          match = matchPattern.exec(originalText)
+        }
 
-        context.report({
-          loc: {
-            start: sourceCode.getLocFromIndex(range[0] + firstMatch.index),
-            end: sourceCode.getLocFromIndex(range[0] + firstMatch.index + 1),
-          },
-          messageId: 'wrapParagraph',
-          fix(fixer) {
-            return fixer.replaceTextRange(range, fixedText)
-          },
-        })
+        if (matches.length === 0)
+          return
+
+        for (const matchItem of matches) {
+          context.report({
+            loc: {
+              start: sourceCode.getLocFromIndex(range[0] + matchItem.index),
+              end: sourceCode.getLocFromIndex(range[0] + matchItem.index + 1),
+            },
+            messageId: 'wrapParagraph',
+            fix(fixer) {
+              return fixer.replaceTextRange(
+                [range[0] + matchItem.index, range[0] + matchItem.index + matchItem.length],
+                `${matchItem.char}\n`,
+              )
+            },
+          })
+        }
       },
     }
   },
