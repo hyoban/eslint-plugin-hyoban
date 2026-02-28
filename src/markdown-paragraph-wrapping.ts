@@ -26,17 +26,18 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
       'root > paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
-        const matchPattern = /[。.][\t ]*(?=[^\r\n])/g
+        const matchPattern = /(。)[\t ]*(?=[^\r\n])|(\.)[\t ]+(?=[^\r\n])/g
         const matches: Array<{ index: number, length: number, char: string }> = []
         let match = matchPattern.exec(originalText)
         while (match) {
           const matchValue = match[0] ?? ''
           if (matchValue.length === 0)
             break
+          const matchedChar = match[1] ?? match[2] ?? matchValue[0] ?? ''
           matches.push({
             index: match.index,
             length: matchValue.length,
-            char: matchValue[0] ?? '',
+            char: matchedChar,
           })
           match = matchPattern.exec(originalText)
         }

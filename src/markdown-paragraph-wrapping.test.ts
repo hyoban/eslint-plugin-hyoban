@@ -29,6 +29,9 @@ run({
       第二句。
     `,
     $`
+      Hello world.This is test.
+    `,
+    $`
       > Hello world. Next one.
     `,
     $`
@@ -90,20 +93,6 @@ run({
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "你好世界。\n第二句。\nThis is ok."
-        `)
-      },
-      errors(errors) {
-        expect(errors).toHaveLength(1)
-        expect(errors[0]?.messageId).toBe('wrapParagraph')
-      },
-    },
-    {
-      code: $`
-        Hello world.This is test.
-      `,
-      output(output) {
-        expect(output).toMatchInlineSnapshot(`
-          "Hello world.\nThis is test."
         `)
       },
       errors(errors) {
