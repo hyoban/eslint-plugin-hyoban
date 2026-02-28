@@ -37,7 +37,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
 
     return {
-      'root > paragraph > text': function (node: Text) {
+      'paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
         const matches: Array<{ boundaryStart: number, boundaryEnd: number, locIndex: number }> = []

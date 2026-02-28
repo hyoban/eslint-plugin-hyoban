@@ -10,7 +10,7 @@ Putting one sentence per line makes diffs cleaner, improves review readability, 
 
 - Splits sentences using `Intl.Segmenter` with `granularity: 'sentence'`.
 - Inserts a newline between sentence boundaries when there is no existing line break.
-- Only applies to top-level paragraphs (`root > paragraph > text`), so blockquotes and list items are left as-is.
+- Applies to all paragraphs, including those inside blockquotes and list items.
 
 ## Options
 
@@ -22,10 +22,6 @@ Input:
 
 ```md
 Hello world. This is a test.
-
-> Quoted. Sentence.
-
-- Item. Sentence.
 ```
 
 Output:
@@ -33,10 +29,6 @@ Output:
 ```md
 Hello world.
 This is a test.
-
-> Quoted. Sentence.
-
-- Item. Sentence.
 ```
 
 ## Read More
