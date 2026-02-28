@@ -3,8 +3,6 @@ import type { Text } from 'mdast'
 
 type MessageIds = 'wrapParagraph'
 
-const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
-
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
     const char = segment[i]
@@ -36,6 +34,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
   },
   create(context) {
     const { sourceCode } = context
+    const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
 
     return {
       'root > paragraph > text': function (node: Text) {
