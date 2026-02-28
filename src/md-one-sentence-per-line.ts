@@ -3,6 +3,21 @@ import type { Text } from 'mdast'
 
 type MessageIds = 'wrapParagraph'
 
+const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
+
+function lastNonWhitespaceChar(segment: string, segmentStart: number) {
+  for (let i = segment.length - 1; i >= 0; i--) {
+    const char = segment[i]
+    if (char && !/\s/.test(char)) {
+      return {
+        char,
+        index: segmentStart + i,
+      }
+    }
+  }
+  return null
+}
+
 const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
   meta: {
     type: 'layout',
@@ -26,20 +41,32 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
       'root > paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
-        const matchPattern = /(。)[\t ]*(?=[^\r\n])|(\.)[\t ]+(?=[^\r\n])/g
-        const matches: Array<{ index: number, length: number, char: string }> = []
-        let match = matchPattern.exec(originalText)
-        while (match) {
-          const matchValue = match[0] ?? ''
-          if (matchValue.length === 0)
-            break
-          const matchedChar = match[1] ?? match[2] ?? matchValue[0] ?? ''
+        const matches: Array<{ boundaryStart: number, boundaryEnd: number, locIndex: number }> = []
+        const segments = Array.from(segmenter.segment(originalText))
+
+        for (let i = 0; i < segments.length - 1; i++) {
+          const current = segments[i]
+          const next = segments[i + 1]
+          if (!current || !next)
+            continue
+
+          const lastCharInfo = lastNonWhitespaceChar(current.segment, current.index)
+          if (!lastCharInfo)
+            continue
+          const boundaryStart = lastCharInfo.index + 1
+          const boundaryEnd = next.index
+          if (boundaryStart > boundaryEnd)
+            continue
+
+          const between = originalText.slice(boundaryStart, boundaryEnd)
+          if (between.includes('\n') || between.includes('\r'))
+            continue
+
           matches.push({
-            index: match.index,
-            length: matchValue.length,
-            char: matchedChar,
+            boundaryStart,
+            boundaryEnd,
+            locIndex: lastCharInfo.index,
           })
-          match = matchPattern.exec(originalText)
         }
 
         if (matches.length === 0)
@@ -48,14 +75,14 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
         for (const matchItem of matches) {
           context.report({
             loc: {
-              start: sourceCode.getLocFromIndex(range[0] + matchItem.index),
-              end: sourceCode.getLocFromIndex(range[0] + matchItem.index + 1),
+              start: sourceCode.getLocFromIndex(range[0] + matchItem.locIndex),
+              end: sourceCode.getLocFromIndex(range[0] + matchItem.locIndex + 1),
             },
             messageId: 'wrapParagraph',
             fix(fixer) {
               return fixer.replaceTextRange(
-                [range[0] + matchItem.index, range[0] + matchItem.index + matchItem.length],
-                `${matchItem.char}\n`,
+                [range[0] + matchItem.boundaryStart, range[0] + matchItem.boundaryEnd],
+                '\n',
               )
             },
           })
