@@ -14,14 +14,15 @@ Putting one sentence per line makes diffs cleaner, improves review readability, 
 
 ## Options
 
-- `ignorePatterns`: an array of regular expression source strings. Sentence boundaries immediately following matching text are ignored.
+- By default, the rule ignores GitHub alert paragraphs that start with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]`.
+- `ignorePatterns`: an array of regular expression source strings. If any pattern matches a paragraph's text, the rule skips that paragraph.
 
-For example, to ignore GitHub-style admonition markers:
+For example, to add your own ignored paragraph pattern:
 
 ```json
 {
   "hyoban/md-one-sentence-per-line": ["error", {
-    "ignorePatterns": ["^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]$"]
+    "ignorePatterns": ["^\\[!CUSTOM\\][\\s\\S]*$"]
   }]
 }
 ```

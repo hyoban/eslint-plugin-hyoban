@@ -6,6 +6,7 @@ type UserOptions = {
   ignorePatterns?: string[]
 }
 export type Options = [UserOptions?]
+const DEFAULT_IGNORE_PATTERNS = ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\][\\s\\S]*$']
 
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
@@ -18,24 +19,6 @@ function lastNonWhitespaceChar(segment: string, segmentStart: number) {
     }
   }
   return null
-}
-
-function getIgnoredRanges(text: string, ignorePatterns: RegExp[]) {
-  const ignoredRanges: Array<{ start: number, end: number }> = []
-
-  for (const pattern of ignorePatterns) {
-    for (const match of text.matchAll(pattern)) {
-      if (match.index == null)
-        continue
-
-      ignoredRanges.push({
-        start: match.index,
-        end: match.index + match[0].length,
-      })
-    }
-  }
-
-  return ignoredRanges
 }
 
 const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Options }> = {
@@ -60,7 +43,11 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
         additionalProperties: false,
       },
     ],
-    defaultOptions: [{}],
+    defaultOptions: [
+      {
+        ignorePatterns: DEFAULT_IGNORE_PATTERNS,
+      },
+    ],
     messages: {
       wrapParagraph: 'Expected paragraph to be wrapped after sentence-ending punctuation.',
     },
@@ -71,13 +58,14 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
     const [options = {}] = context.options
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
-    const ignorePatterns = options.ignorePatterns?.map(pattern => new RegExp(pattern, 'gmu')) ?? []
+    const ignorePatterns = (options.ignorePatterns ?? DEFAULT_IGNORE_PATTERNS).map(pattern => new RegExp(pattern, 'mu'))
 
     return {
       'paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
-        const ignoredRanges = getIgnoredRanges(originalText, ignorePatterns)
+        if (ignorePatterns.some(pattern => pattern.test(originalText)))
+          return
         const matches: Array<{ boundaryStart: number, boundaryEnd: number, locIndex: number }> = []
         const segments = Array.from(segmenter.segment(originalText))
 
@@ -97,8 +85,6 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
 
           const between = originalText.slice(boundaryStart, boundaryEnd)
           if (between.includes('\n') || between.includes('\r'))
-            continue
-          if (ignoredRanges.some(range => lastCharInfo.index >= range.start && lastCharInfo.index < range.end))
             continue
 
           matches.push({

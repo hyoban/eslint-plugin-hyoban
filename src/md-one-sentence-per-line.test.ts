@@ -7,7 +7,7 @@ import mdOneSentencePerLine from './md-one-sentence-per-line'
 
 const admonitionOptions: Options = [
   {
-    ignorePatterns: ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]$'],
+    ignorePatterns: ['^\\[!CUSTOM\\][\\s\\S]*$'],
   },
 ]
 
@@ -41,7 +41,7 @@ run({
     {
       code: $`
         > [!NOTE]
-        > Highlights information that users should take into account, even when skimming.
+        > Highlights information that users should take into account, even when skimming. Optional information to help a user be more successful.
         
         > [!TIP]
         > Optional information to help a user be more successful.
@@ -54,6 +54,12 @@ run({
         
         > [!CAUTION]
         > Negative potential consequences of an action.
+      `,
+    },
+    {
+      code: $`
+        > [!CUSTOM]
+        > First sentence. Second sentence.
       `,
       options: admonitionOptions,
     },
@@ -141,22 +147,6 @@ run({
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "你好世界。\n第二句。\nThis is ok."
-        `)
-      },
-      errors(errors) {
-        expect(errors).toHaveLength(1)
-        expect(errors[0]?.messageId).toBe('wrapParagraph')
-      },
-    },
-    {
-      code: $`
-        > [!NOTE]
-        > Highlights information that users should take into account, even when skimming. Optional information to help a user be more successful.
-      `,
-      options: admonitionOptions,
-      output(output) {
-        expect(output).toMatchInlineSnapshot(`
-          "> [!NOTE]\n> Highlights information that users should take into account, even when skimming.\nOptional information to help a user be more successful."
         `)
       },
       errors(errors) {
