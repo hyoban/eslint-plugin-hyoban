@@ -31,12 +31,6 @@ run({
     $`
       Hello world.This is test.
     `,
-    $`
-      > Hello world. Next one.
-    `,
-    $`
-      - Hello world. Next one.
-    `,
   ],
   invalid: [
     {
@@ -55,6 +49,34 @@ run({
     },
     {
       code: $`
+        > Hello world. Next one.
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "> Hello world.\nNext one."
+        `)
+      },
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('wrapParagraph')
+      },
+    },
+    {
+      code: $`
+        - Hello world. Next one.
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "- Hello world.\nNext one."
+        `)
+      },
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('wrapParagraph')
+      },
+    },
+    {
+      code: $`
         Hello world. Next one.
         
         > Quoted. Sentence.
@@ -63,11 +85,11 @@ run({
       `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
-          "Hello world.\nNext one.\n\n> Quoted. Sentence.\n\n- Item. Sentence."
+          "Hello world.\nNext one.\n\n> Quoted.\nSentence.\n\n- Item.\nSentence."
         `)
       },
       errors(errors) {
-        expect(errors).toHaveLength(1)
+        expect(errors).toHaveLength(3)
         expect(errors[0]?.messageId).toBe('wrapParagraph')
       },
     },
