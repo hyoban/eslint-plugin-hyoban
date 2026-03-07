@@ -21,12 +21,21 @@ function lastNonWhitespaceChar(segment: string, segmentStart: number) {
 }
 
 function getIgnoredRanges(text: string, ignorePatterns: RegExp[]) {
-  return ignorePatterns.flatMap((pattern) => {
-    return Array.from(text.matchAll(pattern), match => ({
-      start: match.index ?? 0,
-      end: (match.index ?? 0) + match[0].length,
-    }))
-  })
+  const ignoredRanges: Array<{ start: number, end: number }> = []
+
+  for (const pattern of ignorePatterns) {
+    for (const match of text.matchAll(pattern)) {
+      if (match.index == null)
+        continue
+
+      ignoredRanges.push({
+        start: match.index,
+        end: match.index + match[0].length,
+      })
+    }
+  }
+
+  return ignoredRanges
 }
 
 const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Options }> = {
