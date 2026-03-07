@@ -35,10 +35,10 @@ Hello world.
 This is a test.
 
 > Quoted.
-> Sentence.
+Sentence.
 
 - Item.
-  Sentence.
+Sentence.
 ```
 
 ## Read More

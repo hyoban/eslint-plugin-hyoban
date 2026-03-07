@@ -53,7 +53,7 @@ run({
       `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
-          "> Hello world.\n> Next one."
+          "> Hello world.\nNext one."
         `)
       },
       errors(errors) {
@@ -67,7 +67,7 @@ run({
       `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
-          "- Hello world.\n  Next one."
+          "- Hello world.\nNext one."
         `)
       },
       errors(errors) {
@@ -85,7 +85,7 @@ run({
       `,
       output(output) {
         expect(output).toMatchInlineSnapshot(`
-          "Hello world.\nNext one.\n\n> Quoted.\n> Sentence.\n\n- Item.\n  Sentence."
+          "Hello world.\nNext one.\n\n> Quoted.\nSentence.\n\n- Item.\nSentence."
         `)
       },
       errors(errors) {
