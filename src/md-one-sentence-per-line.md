@@ -15,7 +15,7 @@ Putting one sentence per line makes diffs cleaner, improves review readability, 
 ## Options
 
 - By default, the rule ignores GitHub alert paragraphs that start with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]`.
-- `ignorePatterns`: an array of additional regular expression source strings. If any built-in or custom pattern matches a paragraph's text, the rule skips that paragraph.
+- `ignorePatterns`: an array of additional regular expression source strings. Patterns are matched against the full paragraph text (which may include embedded newlines, such as GitHub alert content). If any built-in or custom pattern matches that paragraph text, the rule skips that paragraph.
 
 For example, to add your own ignored paragraph pattern:
 
