@@ -6,7 +6,7 @@ type UserOptions = {
   ignorePatterns?: string[]
 }
 export type Options = [UserOptions?]
-const DEFAULT_IGNORE_PATTERNS = ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]']
+const DEFAULT_IGNORE_PATTERNS = ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\][\\s\\S]*$']
 
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
