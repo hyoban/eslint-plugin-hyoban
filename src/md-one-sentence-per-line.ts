@@ -2,6 +2,10 @@ import type { MarkdownRuleDefinition } from '@eslint/markdown'
 import type { Text } from 'mdast'
 
 type MessageIds = 'wrapParagraph'
+type UserOptions = {
+  ignorePatterns?: string[]
+}
+export type Options = [UserOptions?]
 
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
@@ -16,7 +20,16 @@ function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   return null
 }
 
-const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
+function getIgnoredRanges(text: string, ignorePatterns: RegExp[]) {
+  return ignorePatterns.flatMap((pattern) => {
+    return Array.from(text.matchAll(pattern), match => ({
+      start: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
+    }))
+  })
+}
+
+const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Options }> = {
   meta: {
     type: 'layout',
     docs: {
@@ -24,8 +37,21 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
       url: 'https://github.com/hyoban/eslint-plugin-hyoban/blob/main/src/md-one-sentence-per-line.md',
     },
     fixable: 'whitespace',
-    schema: [],
-    defaultOptions: [],
+    schema: [
+      {
+        type: 'object',
+        properties: {
+          ignorePatterns: {
+            type: 'array',
+            items: {
+              type: 'string',
+            },
+          },
+        },
+        additionalProperties: false,
+      },
+    ],
+    defaultOptions: [{}],
     messages: {
       wrapParagraph: 'Expected paragraph to be wrapped after sentence-ending punctuation.',
     },
@@ -33,13 +59,16 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
     dialects: ['gfm'],
   },
   create(context) {
+    const [options = {}] = context.options
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
+    const ignorePatterns = options.ignorePatterns?.map(pattern => new RegExp(pattern, 'gmu')) ?? []
 
     return {
       'paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
+        const ignoredRanges = getIgnoredRanges(originalText, ignorePatterns)
         const matches: Array<{ boundaryStart: number, boundaryEnd: number, locIndex: number }> = []
         const segments = Array.from(segmenter.segment(originalText))
 
@@ -59,6 +88,8 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds }> = {
 
           const between = originalText.slice(boundaryStart, boundaryEnd)
           if (between.includes('\n') || between.includes('\r'))
+            continue
+          if (ignoredRanges.some(range => lastCharInfo.index >= range.start && lastCharInfo.index < range.end))
             continue
 
           matches.push({

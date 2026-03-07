@@ -2,7 +2,14 @@ import markdown from '@eslint/markdown'
 import { run, unindent as $ } from 'eslint-vitest-rule-tester'
 import { expect } from 'vitest'
 
+import type { Options } from './md-one-sentence-per-line'
 import mdOneSentencePerLine from './md-one-sentence-per-line'
+
+const admonitionOptions: Options = [
+  {
+    ignorePatterns: ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]$'],
+  },
+]
 
 run({
   name: 'md-one-sentence-per-line',
@@ -31,6 +38,25 @@ run({
     $`
       Hello world.This is test.
     `,
+    {
+      code: $`
+        > [!NOTE]
+        > Highlights information that users should take into account, even when skimming.
+        
+        > [!TIP]
+        > Optional information to help a user be more successful.
+        
+        > [!IMPORTANT]
+        > Crucial information necessary for users to succeed.
+        
+        > [!WARNING]
+        > Critical content demanding immediate user attention due to potential risks.
+        
+        > [!CAUTION]
+        > Negative potential consequences of an action.
+      `,
+      options: admonitionOptions,
+    },
   ],
   invalid: [
     {
@@ -115,6 +141,22 @@ run({
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "你好世界。\n第二句。\nThis is ok."
+        `)
+      },
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('wrapParagraph')
+      },
+    },
+    {
+      code: $`
+        > [!NOTE]
+        > Highlights information that users should take into account, even when skimming. Optional information to help a user be more successful.
+      `,
+      options: admonitionOptions,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "> [!NOTE]\n> Highlights information that users should take into account, even when skimming.\nOptional information to help a user be more successful."
         `)
       },
       errors(errors) {

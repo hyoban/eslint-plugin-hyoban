@@ -14,7 +14,17 @@ Putting one sentence per line makes diffs cleaner, improves review readability, 
 
 ## Options
 
-This rule has no options.
+- `ignorePatterns`: an array of regular expression source strings. Sentence boundaries immediately following matching text are ignored.
+
+For example, to ignore GitHub-style admonition markers:
+
+```json
+{
+  "hyoban/md-one-sentence-per-line": ["error", {
+    "ignorePatterns": ["^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]$"]
+  }]
+}
+```
 
 ## Example
 
