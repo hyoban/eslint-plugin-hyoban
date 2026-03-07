@@ -6,7 +6,7 @@ type UserOptions = {
   ignorePatterns?: string[]
 }
 export type Options = [UserOptions?]
-const DEFAULT_IGNORE_PATTERNS = ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\][\\s\\S]*$']
+const DEFAULT_IGNORE_PATTERNS = ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]']
 
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
@@ -58,7 +58,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
     const [options = {}] = context.options
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
-    const ignorePatterns = (options.ignorePatterns ?? DEFAULT_IGNORE_PATTERNS).map(pattern => new RegExp(pattern, 'mu'))
+    const ignorePatterns = [...DEFAULT_IGNORE_PATTERNS, ...(options.ignorePatterns ?? [])].map(pattern => new RegExp(pattern, 'mu'))
 
     return {
       'paragraph > text': function (node: Text) {

@@ -7,7 +7,7 @@ import mdOneSentencePerLine from './md-one-sentence-per-line'
 
 const admonitionOptions: Options = [
   {
-    ignorePatterns: ['^\\[!CUSTOM\\][\\s\\S]*$'],
+    ignorePatterns: ['^\\[!CUSTOM\\]'],
   },
 ]
 
