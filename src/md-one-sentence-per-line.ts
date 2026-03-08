@@ -55,7 +55,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
     dialects: ['gfm'],
   },
   create(context) {
-    const [options = {}] = context.options
+    const [options] = context.options
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
     const ignorePatterns = [...DEFAULT_IGNORE_PATTERNS, ...(options.ignorePatterns ?? [])].map(pattern => new RegExp(pattern, 'mu'))
