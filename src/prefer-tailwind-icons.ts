@@ -31,16 +31,25 @@ type IconImportInfo = {
 
 export type MessageIds = 'preferTailwindIcon' | 'preferTailwindIconImport'
 export type Options = [UserOptions?]
+const CAMEL_TO_KEBAB_UPPERCASE_REGEX = /([A-Z]+)([A-Z][a-z])/gu
+const CAMEL_TO_KEBAB_LETTER_DIGIT_REGEX = /([a-z])(\d)/giu
+const CAMEL_TO_KEBAB_DIGIT_LETTER_REGEX = /(\d)([a-z])/giu
+const CAMEL_TO_KEBAB_LOWER_UPPER_REGEX = /([a-z\d])([A-Z])/gu
+const CAMEL_TO_KEBAB_SEPARATOR_REGEX = /[_\s]+/gu
+const REPEATED_DASH_REGEX = /-+/gu
+const EDGE_DASH_REGEX = /^-|-$/gu
+const REGEX_FLAGS_PATTERN = /^[a-z]*$/iu
+const NORMALIZE_SEGMENT_SPACES_REGEX = /\s+/gu
 
 function camelToKebab(value: string): string {
   return value
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1-$2')
-    .replace(/([a-z])(\d)/gi, '$1-$2')
-    .replace(/(\d)([a-z])/gi, '$1-$2')
-    .replace(/([a-z\d])([A-Z])/g, '$1-$2')
-    .replace(/[_\s]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(CAMEL_TO_KEBAB_UPPERCASE_REGEX, '$1-$2')
+    .replace(CAMEL_TO_KEBAB_LETTER_DIGIT_REGEX, '$1-$2')
+    .replace(CAMEL_TO_KEBAB_DIGIT_LETTER_REGEX, '$1-$2')
+    .replace(CAMEL_TO_KEBAB_LOWER_UPPER_REGEX, '$1-$2')
+    .replace(CAMEL_TO_KEBAB_SEPARATOR_REGEX, '-')
+    .replace(REPEATED_DASH_REGEX, '-')
+    .replace(EDGE_DASH_REGEX, '')
     .toLowerCase()
 }
 
@@ -74,7 +83,7 @@ function parseRegexPattern(pattern: string): RegExp | null {
 
   const source = pattern.slice(1, closingSlashIndex)
   const flags = pattern.slice(closingSlashIndex + 1)
-  if (!/^[a-z]*$/i.test(flags))
+  if (!REGEX_FLAGS_PATTERN.test(flags))
     return null
 
   try {
@@ -113,9 +122,9 @@ function normalizeSegment(value: string): string {
   return value
     .replaceAll('/', '-')
     .replaceAll('_', '-')
-    .replace(/\s+/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
+    .replace(NORMALIZE_SEGMENT_SPACES_REGEX, '')
+    .replace(REPEATED_DASH_REGEX, '-')
+    .replace(EDGE_DASH_REGEX, '')
     .toLowerCase()
 }
 
@@ -150,7 +159,7 @@ function getIconClass(
   return [prefix, iconSetPart, iconNamePart, variantPart]
     .filter(Boolean)
     .join('-')
-    .replace(/-+/g, '-')
+    .replace(REPEATED_DASH_REGEX, '-')
 }
 
 function matchLibrarySource(source: string, config: ResolvedLibraryConfig): boolean {

@@ -7,11 +7,12 @@ type UserOptions = {
 }
 export type Options = [UserOptions?]
 const DEFAULT_IGNORE_PATTERNS = ['^\\[![^\\]\\r\\n]+\\]$']
+const WHITESPACE_REGEX = /\s/u
 
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
     const char = segment[i]
-    if (char && !/\s/.test(char)) {
+    if (char && !WHITESPACE_REGEX.test(char)) {
       return {
         char,
         index: segmentStart + i,
@@ -75,7 +76,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
         const originalText = sourceCode.getText(node)
         const ignoredRanges = getIgnoredRanges(originalText, ignorePatterns)
         const matches: Array<{ boundaryStart: number, boundaryEnd: number, locIndex: number }> = []
-        const segments = Array.from(segmenter.segment(originalText))
+        const segments = [...segmenter.segment(originalText)]
 
         for (let i = 0; i < segments.length - 1; i++) {
           const current = segments[i]

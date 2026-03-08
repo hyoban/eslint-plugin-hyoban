@@ -4,6 +4,8 @@ import { createEslintRule } from './utils'
 
 export type MessageIds = 'preferEarlyReturn'
 export type Options = []
+const LEADING_BRACE_REGEX = /^\{/u
+const TRAILING_BRACE_REGEX = /\}$/u
 
 function isConditionRevertNeedBracket(node: TSESTree.Node) {
   return !(
@@ -65,8 +67,8 @@ const rule = createEslintRule<Options, MessageIds>({
               ifText
                 = ifText.startsWith('{') && ifText.endsWith('}')
                   ? ifText
-                      .replace(/^\{/, '')
-                      .replace(/\}$/, '')
+                      .replace(LEADING_BRACE_REGEX, '')
+                      .replace(TRAILING_BRACE_REGEX, '')
                       .replaceAll('\n  ', '\n')
                       .slice(1, -1)
                   : `${getIndentation(node)}${ifText}`
