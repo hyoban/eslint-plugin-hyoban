@@ -69,9 +69,9 @@ function createRule<
         }
       }) as unknown as TOptions
       return create(context, optionsWithDefault)
-    }) as any,
+    }) as unknown as RuleModule<TOptions>['create'],
     defaultOptions,
-    meta: meta as any,
+    meta: meta as RuleModule<TOptions>['meta'],
   }
 }
 
@@ -79,7 +79,7 @@ export const createEslintRule = RuleCreator(
   ruleName => hasDocs.has(ruleName)
     ? `${blobUrl}${ruleName}.md`
     : `${blobUrl}${ruleName}.test.ts`,
-) as any as <TOptions extends readonly unknown[], TMessageIds extends string>({ name, meta, ...rule }: Readonly<RuleWithMetaAndName<TOptions, TMessageIds>>) => RuleModule<TOptions>
+) as unknown as <TOptions extends readonly unknown[], TMessageIds extends string>({ name, meta, ...rule }: Readonly<RuleWithMetaAndName<TOptions, TMessageIds>>) => RuleModule<TOptions>
 
 const warned = new Set<string>()
 

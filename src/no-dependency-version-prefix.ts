@@ -12,6 +12,7 @@ export type Options = [UserOptions?]
 
 const DEFAULT_DEPENDENCY_KEYS = ['dependencies', 'devDependencies']
 const DEFAULT_VERSION_PREFIXES = ['^', '~']
+const EXACT_SEMVER_REGEX = /^\d+\.\d+\.\d+$/u
 
 function getDependencySelector(dependencyKeys: string[]) {
   return `JSONProperty:matches(${dependencyKeys.map(key => `[key.value=${JSON.stringify(key)}]`).join(', ')}) > JSONObjectExpression > JSONProperty`
@@ -79,7 +80,7 @@ const rule = createEslintRule<Options, MessageIds>({
           ? node.key.name
           : String(node.key.value)
         const cleanVersion = version.slice(foundPrefix.length)
-        const canAutoFix = /^\d+\.\d+\.\d+$/.test(cleanVersion)
+        const canAutoFix = EXACT_SEMVER_REGEX.test(cleanVersion)
 
         context.report({
           node: versionNode as unknown as TSESTree.Node,

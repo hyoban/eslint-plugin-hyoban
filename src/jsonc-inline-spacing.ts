@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { TSESTree } from '@typescript-eslint/utils'
 import type { AST as JsonAST } from 'jsonc-eslint-parser'
 
 import { createEslintRule } from './utils'
 
 export type MessageIds = 'jsoncInlineSpacing'
 export type Options = []
+type EslintNode = TSESTree.Node
 
 function getCorrectedSource(value: JsonAST.JSONExpression | null): string | undefined {
   if (!value)
@@ -49,7 +50,7 @@ const rule = createEslintRule<Options, MessageIds>({
         if (shouldIgnore)
           return
 
-        const source = context.sourceCode.getText(node as any)
+        const source = context.sourceCode.getText(node as unknown as EslintNode)
         // @ts-expect-error it's fine
         const keys = properties.map(property => property.key.raw.trim())
         const values = properties.map(property => getCorrectedSource(property.value)?.trim())
@@ -62,7 +63,7 @@ const rule = createEslintRule<Options, MessageIds>({
           return
 
         context.report({
-          node: node as any,
+          node: node as unknown as EslintNode,
           messageId: 'jsoncInlineSpacing',
           fix(fixer) {
             return fixer.replaceTextRange(node.range, correctedSource)
@@ -82,7 +83,7 @@ const rule = createEslintRule<Options, MessageIds>({
           return
 
         const values = (elements as JsonAST.JSONLiteral[]).map(element => element.raw)
-        const source = context.sourceCode.getText(node as any)
+        const source = context.sourceCode.getText(node as unknown as EslintNode)
         const correctedSource = `[${values.join(', ')}]`
         const needFix = source !== correctedSource
 
@@ -90,7 +91,7 @@ const rule = createEslintRule<Options, MessageIds>({
           return
 
         context.report({
-          node: node as any,
+          node: node as unknown as EslintNode,
           messageId: 'jsoncInlineSpacing',
           fix(fixer) {
             return fixer.replaceTextRange(node.range, correctedSource)

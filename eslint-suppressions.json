@@ -1,7 +1,2 @@
 {
-  "src/jsonc-inline-spacing.ts": {
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  }
 }

@@ -14,7 +14,18 @@ Putting one sentence per line makes diffs cleaner, improves review readability, 
 
 ## Options
 
-This rule has no options.
+- By default, the rule ignores GitHub alert-style marker lines like `[!NOTE]` or `[!CUSTOM]`, while still checking the remaining alert content normally.
+- `ignorePatterns`: an array of additional regular expression source strings. These patterns are matched against the full paragraph text, and only the matched text is ignored when deciding whether a sentence boundary should be wrapped.
+
+For example, to ignore a custom alert marker:
+
+```json
+{
+  "hyoban/md-one-sentence-per-line": ["error", {
+    "ignorePatterns": ["^\\[!CUSTOM\\]"]
+  }]
+}
+```
 
 ## Example
 
@@ -43,4 +54,4 @@ Sentence.
 
 ## Read More
 
-https://nick.groenen.me/notes/one-sentence-per-line
+<https://nick.groenen.me/notes/one-sentence-per-line>
