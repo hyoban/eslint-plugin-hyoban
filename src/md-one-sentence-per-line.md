@@ -54,4 +54,4 @@ Sentence.
 
 ## Read More
 
-https://nick.groenen.me/notes/one-sentence-per-line
+<https://nick.groenen.me/notes/one-sentence-per-line>
