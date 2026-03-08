@@ -58,7 +58,7 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
     const [options] = context.options
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
-    const ignorePatterns = [...DEFAULT_IGNORE_PATTERNS, ...(options.ignorePatterns ?? [])].map(pattern => new RegExp(pattern, 'mu'))
+    const ignorePatterns = (options.ignorePatterns ?? []).map(pattern => new RegExp(pattern, 'mu'))
 
     return {
       'paragraph > text': function (node: Text) {
