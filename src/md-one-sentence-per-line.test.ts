@@ -5,9 +5,9 @@ import { expect } from 'vitest'
 import type { Options } from './md-one-sentence-per-line'
 import mdOneSentencePerLine from './md-one-sentence-per-line'
 
-const admonitionOptions: Options = [
+const customIgnorePatternOptions: Options = [
   {
-    ignorePatterns: ['^\\[!CUSTOM\\]'],
+    ignorePatterns: ['^Generated file:'],
   },
 ]
 
@@ -58,10 +58,9 @@ run({
     },
     {
       code: $`
-        > [!CUSTOM]
-        > First sentence. Second sentence.
+        Generated file: First sentence. Second sentence.
       `,
-      options: admonitionOptions,
+      options: customIgnorePatternOptions,
     },
   ],
   invalid: [
