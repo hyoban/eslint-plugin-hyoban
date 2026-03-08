@@ -14,10 +14,10 @@ Putting one sentence per line makes diffs cleaner, improves review readability, 
 
 ## Options
 
-- By default, the rule ignores GitHub alert paragraphs that start with `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, or `[!CAUTION]`, allowing any text inside those paragraphs.
-- `ignorePatterns`: an array of additional regular expression source strings. Patterns are matched against the full paragraph text (which may include embedded newlines, such as GitHub alert content). If any built-in or custom pattern matches that paragraph text, the rule skips that paragraph.
+- By default, the rule ignores GitHub alert-style marker lines like `[!NOTE]` or `[!CUSTOM]`, while still checking the remaining alert content normally.
+- `ignorePatterns`: an array of additional regular expression source strings. These patterns are matched against the full paragraph text, and only the matched text is ignored when deciding whether a sentence boundary should be wrapped.
 
-For example, to add your own ignored paragraph pattern:
+For example, to ignore a custom alert marker:
 
 ```json
 {

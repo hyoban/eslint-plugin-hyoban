@@ -1,4 +1,5 @@
 import markdown from '@eslint/markdown'
+import type { ESLint } from 'eslint'
 import { run, unindent as $ } from 'eslint-vitest-rule-tester'
 import { expect } from 'vitest'
 
@@ -21,7 +22,7 @@ run({
     {
       files: ['**/*.md'],
       plugins: {
-        markdown,
+        markdown: markdown as ESLint.Plugin,
       },
       language: 'markdown/gfm',
     },
@@ -41,7 +42,7 @@ run({
     {
       code: $`
         > [!NOTE]
-        > Highlights information that users should take into account, even when skimming. Optional information to help a user be more successful.
+        > Highlights information that users should take into account, even when skimming.
         
         > [!TIP]
         > Optional information to help a user be more successful.
@@ -54,11 +55,15 @@ run({
         
         > [!CAUTION]
         > Negative potential consequences of an action.
+        
+        > [!CUSTOM]
+        > Custom alert content stays valid when already wrapped.
       `,
     },
     {
       code: $`
-        Generated file: First sentence. Second sentence.
+        Generated file: First sentence.
+        Second sentence.
       `,
       options: customIgnorePatternOptions,
     },
@@ -85,6 +90,51 @@ run({
       output(output) {
         expect(output).toMatchInlineSnapshot(`
           "> Hello world.\nNext one."
+        `)
+      },
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('wrapParagraph')
+      },
+    },
+    {
+      code: $`
+        > [!NOTE]
+        > Highlights information that users should take into account, even when skimming. Optional information to help a user be more successful.
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "> [!NOTE]\n> Highlights information that users should take into account, even when skimming.\nOptional information to help a user be more successful."
+        `)
+      },
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('wrapParagraph')
+      },
+    },
+    {
+      code: $`
+        > [!CUSTOM]
+        > Custom alert content stays valid when already wrapped. Another sentence belongs on the next line.
+      `,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "> [!CUSTOM]\n> Custom alert content stays valid when already wrapped.\nAnother sentence belongs on the next line."
+        `)
+      },
+      errors(errors) {
+        expect(errors).toHaveLength(1)
+        expect(errors[0]?.messageId).toBe('wrapParagraph')
+      },
+    },
+    {
+      code: $`
+        Generated file: First sentence. Second sentence.
+      `,
+      options: customIgnorePatternOptions,
+      output(output) {
+        expect(output).toMatchInlineSnapshot(`
+          "Generated file: First sentence.\nSecond sentence."
         `)
       },
       errors(errors) {

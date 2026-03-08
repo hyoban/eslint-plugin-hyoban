@@ -6,7 +6,7 @@ type UserOptions = {
   ignorePatterns?: string[]
 }
 export type Options = [UserOptions?]
-const DEFAULT_IGNORE_PATTERNS = ['^\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\][\\s\\S]*$']
+const DEFAULT_IGNORE_PATTERNS = ['^\\[![^\\]\\r\\n]+\\]$']
 
 function lastNonWhitespaceChar(segment: string, segmentStart: number) {
   for (let i = segment.length - 1; i >= 0; i--) {
@@ -19,6 +19,15 @@ function lastNonWhitespaceChar(segment: string, segmentStart: number) {
     }
   }
   return null
+}
+
+function getIgnoredRanges(text: string, ignorePatterns: RegExp[]) {
+  return ignorePatterns.flatMap((pattern) => {
+    return Array.from(text.matchAll(pattern), match => ({
+      start: match.index ?? 0,
+      end: (match.index ?? 0) + match[0].length,
+    }))
+  })
 }
 
 const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Options }> = {
@@ -55,17 +64,16 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
     dialects: ['gfm'],
   },
   create(context) {
-    const [options] = context.options
+    const [options = {}] = context.options
     const { sourceCode } = context
     const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' })
-    const ignorePatterns = (options.ignorePatterns ?? []).map(pattern => new RegExp(pattern, 'mu'))
+    const ignorePatterns = (options.ignorePatterns ?? []).map(pattern => new RegExp(pattern, 'gmu'))
 
     return {
       'paragraph > text': function (node: Text) {
         const range = sourceCode.getRange(node)
         const originalText = sourceCode.getText(node)
-        if (ignorePatterns.some(pattern => pattern.test(originalText)))
-          return
+        const ignoredRanges = getIgnoredRanges(originalText, ignorePatterns)
         const matches: Array<{ boundaryStart: number, boundaryEnd: number, locIndex: number }> = []
         const segments = Array.from(segmenter.segment(originalText))
 
@@ -85,6 +93,8 @@ const rule: MarkdownRuleDefinition<{ MessageIds: MessageIds, RuleOptions: Option
 
           const between = originalText.slice(boundaryStart, boundaryEnd)
           if (between.includes('\n') || between.includes('\r'))
+            continue
+          if (ignoredRanges.some(range => lastCharInfo.index >= range.start && lastCharInfo.index < range.end))
             continue
 
           matches.push({
